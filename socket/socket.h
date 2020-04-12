@@ -10,18 +10,35 @@
 
 #pragma comment(lib, "Ws2_32.lib")
 
+class socketException : public std::exception
+{
+public:
+    int iResult;
+    char *msg;
+    socketException(int iResult, char *msg = nullptr)
+    {
+        this->iResult = iResult;
+        this->msg = msg;
+    }
+};
+
 class tcpSocket
 {
 private:
     static int instanceCount;
     static WSAData *wsaData;
-    struct addrinfo *hints;
+    static addrinfo *hints;
+    SOCKET _socket;
+    bool isServer;
 
 public:
-    tcpSocket();
+    tcpSocket(bool isServer = false);
+    void bind(char *port);
+    tcpSocket *accept();
     bool connect(char *address, char *port);
-    void send(char *buffer, int n);
-    void receive(char *buffer, int n);
+    void close();
+    int send(char *buffer, int n);
+    int receive(char *buffer, int n);
     ~tcpSocket();
 };
 
