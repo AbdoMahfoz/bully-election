@@ -1,7 +1,7 @@
 #ifndef SOCKET_CLASS
 #define SOCKET_CLASS
 
-#define _WIN32_WINNT 0x0501
+//#define _WIN32_WINNT 0x0501
 
 #include <winsock2.h>
 #include <iphlpapi.h>
@@ -33,13 +33,15 @@ private:
 
 public:
     tcpSocket(bool isServer = false);
-    void bind(char *port);
-    tcpSocket *accept();
-    bool connect(char *address, char *port);
-    void close();
-    int send(char *buffer, int n);
-    int receive(char *buffer, int n);
     ~tcpSocket();
+    //server
+    void bind(const char *port);
+    tcpSocket *accept();
+    //client
+    bool connect(const char *address, const char *port);
+    void close();
+    int send(const char *buffer, int n);
+    int receive(char *buffer, int n);
 };
 
 #endif

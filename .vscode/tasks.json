@@ -3,16 +3,29 @@
 	"tasks": [
 		{
 			"type": "shell",
-			"label": "g++.exe build active file",
-			"command": "g++",
+			"label": "build",
+			"presentation": {
+				"echo": true,
+				"reveal": "always",
+				"focus": true,
+				"panel": "shared",
+				"showReuseMessage": true,
+				"clear": true
+			},
+			"options": {
+				"cwd": "build"
+			},
+			"command": "vcvarsall.bat amd64_x86 && cl",
 			"args": [
-				"-g",
-				"*.cpp",
-				"-o",
-				"a.exe"
+				"/Fe:a.exe",
+				"/EHsc",
+				"../*.cpp",
+				"../socket/*.cpp",
+				"/link",
+				"Ws2_32.lib"
 			],
 			"problemMatcher": [
-				"$gcc"
+				"$msCompile"
 			],
 			"group": "build"
 		},
@@ -27,11 +40,26 @@
 				"showReuseMessage": true,
 				"clear": true
 			},
-			"command": "g++ *.cpp -l ws2_32 && echo Done && a.exe",
-			"problemMatcher": [
-				"$gcc"
-			],
-			"group": "build"
+			"options": {
+				"cwd": "build"
+			},
+			"command": "a.exe",
+			"dependsOn": "build"
+		},
+		{
+			"type": "shell",
+			"label": "run",
+			"presentation": {
+				"echo": true,
+				"reveal": "always",
+				"focus": true,
+				"panel": "new",
+				"clear": true
+			},
+			"options": {
+				"cwd": "build"
+			},
+			"command": "a.exe"
 		}
 	]
 }

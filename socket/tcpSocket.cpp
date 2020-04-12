@@ -28,7 +28,7 @@ tcpSocket::tcpSocket(bool isServer)
         }
     }
 }
-void tcpSocket::bind(char *port)
+void tcpSocket::bind(const char *port)
 {
     addrinfo *result;
     int iResult = getaddrinfo(NULL, port, hints, &result);
@@ -42,10 +42,10 @@ void tcpSocket::bind(char *port)
         throw socketException(WSAGetLastError());
     }
     iResult = ::bind(_socket, result->ai_addr, (int)result->ai_addrlen);
+    freeaddrinfo(result);
     if (iResult == SOCKET_ERROR)
     {
         closesocket(_socket);
-        freeaddrinfo(result);
         throw socketException(WSAGetLastError());
     }
 }
@@ -65,7 +65,7 @@ tcpSocket *tcpSocket::accept()
     res->_socket = resSocket;
     return res;
 }
-bool tcpSocket::connect(char *address, char *port)
+bool tcpSocket::connect(const char *address, const char *port)
 {
     addrinfo *result;
     int iResult = getaddrinfo(address, port, hints, &result);
@@ -102,22 +102,25 @@ bool tcpSocket::connect(char *address, char *port)
 }
 void tcpSocket::close()
 {
-    int iResult = shutdown(_socket, SD_SEND);
-    if (iResult == SOCKET_ERROR)
+    if (!isServer)
     {
-        closesocket(_socket);
-        _socket = INVALID_SOCKET;
-        throw socketException(WSAGetLastError());
+        int iResult = shutdown(_socket, SD_SEND);
+        if (iResult == SOCKET_ERROR)
+        {
+            closesocket(_socket);
+            _socket = INVALID_SOCKET;
+            throw socketException(WSAGetLastError());
+        }
+        char buffer[1024];
+        do
+        {
+            iResult = receive(buffer, 1024);
+        } while (iResult > 0);
     }
-    char buffer[1024];
-    do
-    {
-        iResult = receive(buffer, 1024);
-    } while (iResult > 0);
     closesocket(_socket);
     _socket = INVALID_SOCKET;
 }
-int tcpSocket::send(char *buffer, int n)
+int tcpSocket::send(const char *buffer, int n)
 {
     int iResult;
     iResult = ::send(_socket, buffer, n, 0);
@@ -146,6 +149,7 @@ tcpSocket::~tcpSocket()
     }
     if (instanceCount == 0)
     {
+        std::cout << "WINSOCK CLEAN\n";
         WSACleanup();
         delete wsaData, hints;
     }
