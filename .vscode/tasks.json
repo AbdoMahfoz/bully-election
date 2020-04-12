@@ -1,0 +1,37 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"type": "shell",
+			"label": "g++.exe build active file",
+			"command": "g++",
+			"args": [
+				"-g",
+				"*.cpp",
+				"-o",
+				"a.exe"
+			],
+			"problemMatcher": [
+				"$gcc"
+			],
+			"group": "build"
+		},
+		{
+			"type": "shell",
+			"label": "build and run",
+			"presentation": {
+				"echo": true,
+				"reveal": "always",
+				"focus": true,
+				"panel": "shared",
+				"showReuseMessage": true,
+				"clear": true
+			},
+			"command": "g++ *.cpp -l ws2_32 && echo Done && a.exe",
+			"problemMatcher": [
+				"$gcc"
+			],
+			"group": "build"
+		}
+	]
+}
