@@ -9,11 +9,8 @@ int main()
         tcpSocket server(true);
         server.bind("8234");
         tcpSocket *client = server.accept();
-        char buffer[1024];
-        int buffLen = client->receive(buffer, 1024);
-        buffer[buffLen] = '\0';
-        std::cout << buffer << '\n';
-        client->send("OK", 2);
+        std::cout << client->receive() << '\n';
+        client->send("OK");
         delete client;
     }
     else
@@ -21,11 +18,8 @@ int main()
         tcpSocket client;
         if (client.connect("localhost", "8234"))
         {
-            client.send("Confirm", 7);
-            char buffer[1024];
-            int buffLen = client.receive(buffer, 1024);
-            buffer[buffLen] = '\0';
-            std::cout << buffer << '\n';
+            client.send("Confirm");
+            std::cout << client.receive() << '\n';
         }
     }
 }
