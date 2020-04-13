@@ -4,7 +4,7 @@
 #include <iostream>
 #include <conio.h>
 #include "controller.h"
-#include "socket/socket.h"
+#include "../socket/socket.h"
 
 struct Process
 {

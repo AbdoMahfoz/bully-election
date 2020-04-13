@@ -1,95 +1,93 @@
 {
-	"version": "2.0.0",
-	"tasks": [
-		{
-			"type": "shell",
-			"label": "build",
-			"presentation": {
-				"echo": true,
-				"reveal": "always",
-				"focus": true,
-				"panel": "shared",
-				"showReuseMessage": true,
-				"clear": true
-			},
-			"options": {
-				"cwd": "build"
-			},
-			"command": "vcvarsall.bat amd64_x86 && cl",
-			"args": [
-				"/Fe:a.exe",
-				"/EHsc",
-				"../*.cpp",
-				"../socket/*.cpp",
-				"/link",
-				"Ws2_32.lib"
-			],
-			"problemMatcher": [
-				"$msCompile"
-			],
-			"group": "build"
-		},
-		{
-			"type": "shell",
-			"label": "debug build",
-			"presentation": {
-				"echo": true,
-				"reveal": "always",
-				"focus": true,
-				"panel": "shared",
-				"showReuseMessage": false,
-				"clear": true
-			},
-			"options": {
-				"cwd": "build"
-			},
-			"command": "vcvarsall.bat amd64_x86 && cl",
-			"args": [
-				"/Fe:a.exe",
-				"/EHsc",
-				"../*.cpp",
-				"../socket/*.cpp",
-				"/Zi",
-				"/link",
-				"Ws2_32.lib",
-				"/DEBUG:FASTLINK",
-			],
-			"problemMatcher": [
-				"$msCompile"
-			],
-			"group": "build"
-		},
-		{
-			"type": "shell",
-			"label": "build and run",
-			"presentation": {
-				"echo": true,
-				"reveal": "always",
-				"focus": true,
-				"panel": "shared",
-				"showReuseMessage": true,
-				"clear": true
-			},
-			"options": {
-				"cwd": "build"
-			},
-			"command": "a.exe",
-			"dependsOn": "build"
-		},
-		{
-			"type": "shell",
-			"label": "run",
-			"presentation": {
-				"echo": true,
-				"reveal": "always",
-				"focus": true,
-				"panel": "new",
-				"clear": true
-			},
-			"options": {
-				"cwd": "build"
-			},
-			"command": "a.exe"
-		}
-	]
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "type": "shell",
+      "label": "build",
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": true,
+        "panel": "shared",
+        "showReuseMessage": true,
+        "clear": true
+      },
+      "options": {
+        "cwd": "build"
+      },
+      "command": "vcvarsall.bat amd64_x86 && cl",
+      "args": [
+        "/Fe:a.exe",
+        "/EHsc",
+        "../*.cpp",
+        "../socket/*.cpp",
+        "../controller/*.cpp",
+        "../unit/*.cpp",
+        "/link",
+        "Ws2_32.lib"
+      ],
+      "problemMatcher": ["$msCompile"],
+      "group": "build"
+    },
+    {
+      "type": "shell",
+      "label": "debug build",
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": true,
+        "panel": "shared",
+        "showReuseMessage": false,
+        "clear": true
+      },
+      "options": {
+        "cwd": "build"
+      },
+      "command": "vcvarsall.bat amd64_x86 && cl",
+      "args": [
+        "/Fe:a.exe",
+        "/EHsc",
+        "../*.cpp",
+        "../socket/*.cpp",
+        "/Zi",
+        "/link",
+        "Ws2_32.lib",
+        "/DEBUG:FASTLINK"
+      ],
+      "problemMatcher": ["$msCompile"],
+      "group": "build"
+    },
+    {
+      "type": "shell",
+      "label": "build and run",
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": true,
+        "panel": "shared",
+        "showReuseMessage": true,
+        "clear": true
+      },
+      "options": {
+        "cwd": "build"
+      },
+      "command": "a.exe",
+      "dependsOn": "build"
+    },
+    {
+      "type": "shell",
+      "label": "run",
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": true,
+        "panel": "new",
+        "clear": true
+      },
+      "options": {
+        "cwd": "build"
+      },
+      "command": "a.exe"
+    }
+  ]
 }
