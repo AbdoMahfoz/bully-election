@@ -32,11 +32,17 @@ private:
     SOCKET _socket;
     bool isServer;
     bool isTcp;
+    bool reuseAddress, broadcast;
+    addrinfo *getHints();
+    void activateop(bool val, int op);
+    void activatePortReuse();
+    void activateBroadcast();
 
 public:
     Socket(bool isTcp, bool isServer = false);
     ~Socket();
-    inline addrinfo *getHints();
+    void setAddressPortReuse(bool value);
+    void setBroadcast(bool value);
     //tcp server
     void bind(const char *port);
     Socket *accept();

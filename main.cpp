@@ -34,6 +34,7 @@ void udpTest()
     {
         Socket server(false, true);
         std::string sender, port;
+        server.setAddressPortReuse(true);
         server.bind("8234");
         std::string res = server.receiveFrom(&sender, &port);
         std::cout << sender << ':' << port << " = " << res << '\n';
@@ -51,7 +52,7 @@ int main()
 {
     try
     {
-        tcpTest();
+        udpTest();
     }
     catch (socketException e)
     {

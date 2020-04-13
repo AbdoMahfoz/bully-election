@@ -11,6 +11,7 @@ Socket::Socket(bool isTcp, bool isServer)
     _socket = INVALID_SOCKET;
     this->isServer = isServer;
     this->isTcp = isTcp;
+    this->reuseAddress = this->broadcast = false;
     lock.lock();
     instanceCount++;
     if (instanceCount == 1)
@@ -41,6 +42,37 @@ inline addrinfo *Socket::getHints()
 {
     return isServer ? serverHints : clientHints;
 }
+void Socket::activateop(bool value, int op)
+{
+    char val = (value ? '1' : '0');
+    int iResult = setsockopt(_socket, SOL_SOCKET, op, &val, sizeof(val));
+    if (iResult != 0)
+    {
+        throw socketException(iResult, "when setting socket options");
+    }
+}
+void Socket::activatePortReuse()
+{
+    if (reuseAddress)
+    {
+        activateop(reuseAddress, SO_REUSEADDR);
+    }
+}
+void Socket::activateBroadcast()
+{
+    if (broadcast)
+    {
+        activateop(broadcast, SO_BROADCAST);
+    }
+}
+void Socket::setAddressPortReuse(bool value)
+{
+    reuseAddress = value;
+}
+void Socket::setBroadcast(bool value)
+{
+    broadcast = value;
+}
 void Socket::bind(const char *port)
 {
     addrinfo *result;
@@ -56,6 +88,8 @@ void Socket::bind(const char *port)
         {
             throw socketException(WSAGetLastError(), "when creating binding socket");
         }
+        activateBroadcast();
+        activatePortReuse();
         iResult = ::bind(_socket, result->ai_addr, (int)result->ai_addrlen);
         if (iResult == SOCKET_ERROR)
         {
