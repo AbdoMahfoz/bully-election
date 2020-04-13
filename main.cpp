@@ -51,7 +51,7 @@ int main()
 {
     try
     {
-        udpTest();
+        tcpTest();
     }
     catch (socketException e)
     {

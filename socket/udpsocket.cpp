@@ -54,11 +54,14 @@ int udpSocket::sendTo(const char *address, const char *port, const char *buffer,
 }
 int udpSocket::sendToMultiCast(const char *buffer, int n)
 {
-    std::cout << multiCastAddress << ':' << multiCastPort << '\n';
     return sendTo(multiCastAddress, multiCastPort, buffer, n);
 }
 int udpSocket::receiveFrom(std::string *address, std::string *port, char *buffer, int n)
 {
+    if(_socket == INVALID_SOCKET)
+    {
+        bind("0");
+    }
     if (n == -1)
     {
         n = strlen(buffer);

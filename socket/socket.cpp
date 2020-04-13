@@ -1,7 +1,7 @@
 #include "socket.h"
 
 WSAData *Socket::wsaData = nullptr;
-addrinfo *Socket::clientHints, *Socket::hints = nullptr;
+addrinfo *Socket::tcpHints, *Socket::udpHints = nullptr;
 int Socket::instanceCount = 0;
 std::mutex Socket::m;
 
@@ -21,18 +21,24 @@ Socket::Socket(bool isTcp)
         {
             throw socketException(iResult, "in initialization");
         }
-        hints = new addrinfo();
-        ZeroMemory(hints, sizeof(*hints));
-        hints->ai_family = AF_INET;
-        hints->ai_socktype = (isTcp ? SOCK_STREAM : SOCK_DGRAM);
-        hints->ai_protocol = (isTcp ? IPPROTO_TCP : IPPROTO_UDP);
-        hints->ai_flags = AI_PASSIVE;
+        tcpHints = new addrinfo();
+        ZeroMemory(tcpHints, sizeof(*tcpHints));
+        tcpHints->ai_family = AF_INET;
+        tcpHints->ai_socktype = SOCK_STREAM;
+        tcpHints->ai_protocol = IPPROTO_TCP;
+        tcpHints->ai_flags = AI_PASSIVE;
+        udpHints = new addrinfo();
+        ZeroMemory(udpHints, sizeof(*udpHints));
+        udpHints->ai_family = AF_INET;
+        udpHints->ai_socktype = SOCK_DGRAM;
+        udpHints->ai_protocol = IPPROTO_UDP;
+        udpHints->ai_flags = AI_PASSIVE;
     }
     lock.unlock();
 }
 inline addrinfo *Socket::getHints()
 {
-    return hints;
+    return isTcp ? tcpHints : udpHints;
 }
 void Socket::activateop(bool value, int op)
 {
@@ -110,7 +116,7 @@ Socket::~Socket()
     if (instanceCount == 0)
     {
         WSACleanup();
-        delete wsaData, clientHints, hints;
+        delete wsaData, tcpHints, udpHints;
     }
     lock.unlock();
 }

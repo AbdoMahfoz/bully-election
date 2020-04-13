@@ -28,7 +28,7 @@ class Socket
 private:
     static int instanceCount;
     static WSAData *wsaData;
-    static addrinfo *hints, *clientHints;
+    static addrinfo *udpHints, *tcpHints;
     static std::mutex m;
     bool isTcp, reuseAddress, broadcast;
     void activateop(bool val, int op);
@@ -48,6 +48,8 @@ public:
 
 class tcpSocket : public Socket
 {
+private:
+    bool isConnected;
 public:
     tcpSocket();
     ~tcpSocket();
@@ -64,7 +66,6 @@ class udpSocket : public Socket
 private:
     bool isInMulticast;
     char *multiCastAddress, *multiCastPort;
-
 public:
     udpSocket();
     ~udpSocket();

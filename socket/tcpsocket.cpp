@@ -2,6 +2,7 @@
 
 tcpSocket::tcpSocket() : Socket(true)
 {
+    this->isConnected = false;
 }
 
 tcpSocket *tcpSocket::accept()
@@ -17,6 +18,7 @@ tcpSocket *tcpSocket::accept()
         throw socketException(WSAGetLastError(), "when accepting connection");
     }
     tcpSocket *res = new tcpSocket();
+    res->isConnected = true;
     res->_socket = resSocket;
     return res;
 }
@@ -51,8 +53,10 @@ bool tcpSocket::connect(const char *address, const char *port)
     freeaddrinfo(result);
     if (_socket == INVALID_SOCKET)
     {
+        isConnected = false;
         return false;
     }
+    isConnected = true;
     return true;
 }
 int tcpSocket::send(const char *buffer, int n)
@@ -89,18 +93,21 @@ std::string tcpSocket::receive(int n)
 }
 void tcpSocket::close()
 {
-    int iResult = shutdown(_socket, SD_SEND);
-    if (iResult == SOCKET_ERROR)
+    if(isConnected)
     {
-        closesocket(_socket);
-        _socket = INVALID_SOCKET;
-        throw socketException(WSAGetLastError(), "when shutting down");
+        int iResult = shutdown(_socket, SD_SEND);
+        if (iResult == SOCKET_ERROR)
+        {
+            closesocket(_socket);
+            _socket = INVALID_SOCKET;
+            throw socketException(WSAGetLastError(), "when shutting down");
+        }
+        char buffer[1024];
+        do
+        {
+            iResult = receive(buffer, 1024);
+        } while (iResult > 0);
     }
-    char buffer[1024];
-    do
-    {
-        iResult = receive(buffer, 1024);
-    } while (iResult > 0);
     closesocket(_socket);
     _socket = INVALID_SOCKET;
 }
