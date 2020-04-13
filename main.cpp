@@ -33,10 +33,8 @@ void udpTest()
     if (n == 0)
     {
         Socket server(false, true);
-        std::string sender, port;
-        server.setAddressPortReuse(true);
-        server.bind("8234");
         server.joinMulticast("239.123.123.123", "8234");
+        std::string sender, port;
         std::string res = server.receiveFrom(&sender, &port);
         std::cout << sender << ':' << port << " = " << res << '\n';
         server.sendTo(sender.c_str(), port.c_str(), "Yes");

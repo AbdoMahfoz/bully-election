@@ -41,7 +41,7 @@ Socket::Socket(bool isTcp, bool isServer)
 }
 inline addrinfo *Socket::getHints()
 {
-    return isServer ? serverHints : clientHints;
+    return (isServer || !isTcp) ? serverHints : clientHints;
 }
 void Socket::activateop(bool value, int op)
 {
@@ -76,6 +76,8 @@ void Socket::setBroadcast(bool value)
 }
 void Socket::joinMulticast(const char *groupIp, const char *groupPort)
 {
+    setAddressPortReuse(true);
+    bind(groupPort);
     ip_mreq mreq;
     mreq.imr_multiaddr.s_addr = inet_addr(groupIp);
     mreq.imr_interface.s_addr = htonl(INADDR_ANY);
