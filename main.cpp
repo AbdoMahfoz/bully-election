@@ -8,16 +8,16 @@ void tcpTest()
     std::cin >> n;
     if (n == 0)
     {
-        Socket server(true, true);
+        tcpSocket server;
         server.bind("8234");
-        Socket *client = server.accept();
+        tcpSocket *client = server.accept();
         std::cout << client->receive() << '\n';
         client->send("OK");
         delete client;
     }
     else
     {
-        Socket client(true);
+        tcpSocket client;
         if (client.connect("localhost", "8234"))
         {
             client.send("Confirm");
@@ -32,7 +32,7 @@ void udpTest()
     std::cin >> n;
     if (n == 0)
     {
-        Socket server(false, true);
+        udpSocket server;
         server.joinMulticast("239.123.123.123", "8234");
         std::string sender, port;
         std::string res = server.receiveFrom(&sender, &port);
@@ -41,7 +41,7 @@ void udpTest()
     }
     else
     {
-        Socket client(false);
+        udpSocket client;
         client.sendTo("239.123.123.123", "8234", "Confirm");
         std::cout << client.receiveFrom(NULL, NULL) << '\n';
     }

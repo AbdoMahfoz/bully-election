@@ -15,7 +15,8 @@ class socketException : public std::exception
 public:
     int iResult;
     char *msg;
-    socketException(int iResult, char *msg = nullptr) : std::exception((std::to_string(iResult) + " " + msg).c_str())
+    socketException(int iResult, char *msg = nullptr) : 
+    std::exception((std::to_string(iResult) + " " + msg).c_str())
     {
         this->iResult = iResult;
         this->msg = msg;
@@ -27,38 +28,49 @@ class Socket
 private:
     static int instanceCount;
     static WSAData *wsaData;
-    static addrinfo *serverHints, *clientHints;
+    static addrinfo *hints, *clientHints;
     static std::mutex m;
-    SOCKET _socket;
-    bool isServer;
-    bool isTcp;
-    bool reuseAddress, broadcast;
-    bool isInMulticast;
-    char *multiCastAddress, *multiCastPort;
-    addrinfo *getHints();
+    bool isTcp, reuseAddress, broadcast;
     void activateop(bool val, int op);
     void activatePortReuse();
     void activateBroadcast();
-
+protected:
+    addrinfo *getHints();
+    SOCKET _socket;
 public:
-    Socket(bool isTcp, bool isServer = false);
-    ~Socket();
+    Socket(bool isTcp);
+    virtual ~Socket();
     void setAddressPortReuse(bool value);
     void setBroadcast(bool value);
-    void joinMulticast(const char *groupIp, const char *groupPort);
-    //tcp server
     void bind(const char *port);
-    Socket *accept();
-    //tcp client
+    
+};
+
+class tcpSocket : public Socket
+{
+public:
+    tcpSocket();
+    ~tcpSocket();
+    tcpSocket *accept();
     bool connect(const char *address, const char *port);
     int send(const char *buffer, int n = -1);
     int receive(char *buffer, int n);
     std::string receive(int n = 1024);
-    //tcp common
     void close();
-    //udp
-    int sendTo(const char *address, const char *port, const char *buffer, int n = -1);
+};
+
+class udpSocket : public Socket
+{
+private:
+    bool isInMulticast;
+    char *multiCastAddress, *multiCastPort;
+
+public:
+    udpSocket();
+    ~udpSocket();
+    void joinMulticast(const char *groupIp, const char *groupPort);
     int sendToMultiCast(const char *buffer, int n = -1);
+    int sendTo(const char *address, const char *port, const char *buffer, int n = -1);
     int receiveFrom(std::string *address, std::string *port, char *buffer, int n);
     std::string receiveFrom(std::string *address, std::string *port, int n = 1024);
 };
