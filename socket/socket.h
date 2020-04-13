@@ -22,7 +22,7 @@ public:
     }
 };
 
-class tcpSocket
+class Socket
 {
 private:
     static int instanceCount;
@@ -31,20 +31,26 @@ private:
     static std::mutex m;
     SOCKET _socket;
     bool isServer;
+    bool isTcp;
 
 public:
-    tcpSocket(bool isServer = false);
-    ~tcpSocket();
+    Socket(bool isTcp, bool isServer = false);
+    ~Socket();
     inline addrinfo *getHints();
-    //server
+    //tcp server
     void bind(const char *port);
-    tcpSocket *accept();
-    //client
+    Socket *accept();
+    //tcp client
     bool connect(const char *address, const char *port);
-    void close();
     int send(const char *buffer, int n = -1);
     int receive(char *buffer, int n);
     std::string receive(int n = 1024);
+    //tcp common
+    void close();
+    //udp
+    int sendTo(const char *address, const char *port, const char *buffer, int n = -1);
+    int receiveFrom(std::string *address, std::string *port, char *buffer, int n);
+    std::string receiveFrom(std::string *address, std::string *port, int n = 1024);
 };
 
 #endif

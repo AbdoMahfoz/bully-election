@@ -1,15 +1,16 @@
 #include "socket.h"
 
-WSAData *tcpSocket::wsaData = nullptr;
-addrinfo *tcpSocket::clientHints, *tcpSocket::serverHints = nullptr;
-int tcpSocket::instanceCount = 0;
-std::mutex tcpSocket::m;
+WSAData *Socket::wsaData = nullptr;
+addrinfo *Socket::clientHints, *Socket::serverHints = nullptr;
+int Socket::instanceCount = 0;
+std::mutex Socket::m;
 
-tcpSocket::tcpSocket(bool isServer)
+Socket::Socket(bool isTcp, bool isServer)
 {
     std::unique_lock<std::mutex> lock(m, std::defer_lock);
     _socket = INVALID_SOCKET;
     this->isServer = isServer;
+    this->isTcp = isTcp;
     lock.lock();
     instanceCount++;
     if (instanceCount == 1)
@@ -20,25 +21,27 @@ tcpSocket::tcpSocket(bool isServer)
         {
             throw socketException(iResult, "in initialization");
         }
+        int sockType = (isTcp ? SOCK_STREAM : SOCK_DGRAM);
+        int protocol = (isTcp ? IPPROTO_TCP : IPPROTO_UDP);
         clientHints = new addrinfo();
         ZeroMemory(clientHints, sizeof(*clientHints));
-        clientHints->ai_family = AF_UNSPEC;
-        clientHints->ai_socktype = SOCK_STREAM;
-        clientHints->ai_protocol = IPPROTO_TCP;
+        clientHints->ai_family = AF_INET;
+        clientHints->ai_socktype = sockType;
+        clientHints->ai_protocol = protocol;
         serverHints = new addrinfo();
         ZeroMemory(serverHints, sizeof(*serverHints));
-        serverHints->ai_family = AF_UNSPEC;
-        serverHints->ai_socktype = SOCK_STREAM;
-        serverHints->ai_protocol = IPPROTO_TCP;
+        serverHints->ai_family = AF_INET;
+        serverHints->ai_socktype = sockType;
+        serverHints->ai_protocol = protocol;
         serverHints->ai_flags = AI_PASSIVE;
     }
     lock.unlock();
 }
-inline addrinfo *tcpSocket::getHints()
+inline addrinfo *Socket::getHints()
 {
     return isServer ? serverHints : clientHints;
 }
-void tcpSocket::bind(const char *port)
+void Socket::bind(const char *port)
 {
     addrinfo *result;
     int iResult = getaddrinfo(NULL, port, getHints(), &result);
@@ -72,7 +75,7 @@ void tcpSocket::bind(const char *port)
         throw socketException(WSAGetLastError(), "when creating binding socket");
     }
 }
-tcpSocket *tcpSocket::accept()
+Socket *Socket::accept()
 {
     if (listen(_socket, SOMAXCONN) == SOCKET_ERROR)
     {
@@ -84,11 +87,11 @@ tcpSocket *tcpSocket::accept()
     {
         throw socketException(WSAGetLastError(), "when accepting connection");
     }
-    tcpSocket *res = new tcpSocket();
+    Socket *res = new Socket(true);
     res->_socket = resSocket;
     return res;
 }
-bool tcpSocket::connect(const char *address, const char *port)
+bool Socket::connect(const char *address, const char *port)
 {
     addrinfo *result;
     int iResult = getaddrinfo(address, port, getHints(), &result);
@@ -123,9 +126,9 @@ bool tcpSocket::connect(const char *address, const char *port)
     }
     return true;
 }
-void tcpSocket::close()
+void Socket::close()
 {
-    if (!isServer)
+    if (isTcp && !isServer)
     {
         int iResult = shutdown(_socket, SD_SEND);
         if (iResult == SOCKET_ERROR)
@@ -143,7 +146,7 @@ void tcpSocket::close()
     closesocket(_socket);
     _socket = INVALID_SOCKET;
 }
-int tcpSocket::send(const char *buffer, int n)
+int Socket::send(const char *buffer, int n)
 {
     int iResult;
     if (n == -1)
@@ -157,7 +160,7 @@ int tcpSocket::send(const char *buffer, int n)
     }
     return iResult;
 }
-int tcpSocket::receive(char *buffer, int n)
+int Socket::receive(char *buffer, int n)
 {
     int iResult;
     iResult = recv(_socket, buffer, n, 0);
@@ -167,14 +170,74 @@ int tcpSocket::receive(char *buffer, int n)
     }
     return iResult;
 }
-std::string tcpSocket::receive(int n)
+std::string Socket::receive(int n)
 {
     char *c = new char[n];
     int recvBytes = receive(c, n);
     std::string res(c, recvBytes);
     return res;
 }
-tcpSocket::~tcpSocket()
+int Socket::sendTo(const char *address, const char *port, const char *buffer, int n)
+{
+    if (_socket == INVALID_SOCKET)
+    {
+        bind("0");
+    }
+    addrinfo *result;
+    int iResult = getaddrinfo(address, port, getHints(), &result);
+    if (iResult != 0)
+    {
+        throw socketException(iResult, "when udp sending");
+    }
+    if (n == -1)
+    {
+        n = strlen(buffer);
+    }
+    int sentBytes = sendto(_socket, buffer, n, 0, result->ai_addr, (int)result->ai_addrlen);
+    if (sentBytes == SOCKET_ERROR)
+    {
+        throw socketException(sentBytes, "when udp sending");
+    }
+    freeaddrinfo(result);
+    return sentBytes;
+}
+int Socket::receiveFrom(std::string *address, std::string *port, char *buffer, int n)
+{
+    if (n == -1)
+    {
+        n = strlen(buffer);
+    }
+    sockaddr_in sAddr;
+    ZeroMemory(&sAddr, sizeof(sAddr));
+    sAddr.sin_family = AF_INET;
+    sAddr.sin_port = 0;
+    sAddr.sin_addr.S_un.S_addr = inet_addr(NULL);
+    int sAddrLen = sizeof(sAddr);
+    int recvBytes = recvfrom(_socket, buffer, n, 0, (sockaddr *)&sAddr, &sAddrLen);
+    if (recvBytes == SOCKET_ERROR)
+    {
+        throw socketException(WSAGetLastError(), "when udp receiving");
+    }
+    if (address != NULL)
+    {
+        char *peer_addr_str = new char[INET_ADDRSTRLEN];
+        inet_ntop(AF_INET, &sAddr.sin_addr, peer_addr_str, INET_ADDRSTRLEN);
+        *address = std::string(peer_addr_str);
+    }
+    if (port != NULL)
+    {
+        *port = std::to_string(ntohs(sAddr.sin_port));
+    }
+    return recvBytes;
+}
+std::string Socket::receiveFrom(std::string *sender, std::string *port, int n)
+{
+    char *c = new char[n];
+    int recvBytes = receiveFrom(sender, port, c, n);
+    std::string res(c, recvBytes);
+    return res;
+}
+Socket::~Socket()
 {
     if (_socket != INVALID_SOCKET)
     {
