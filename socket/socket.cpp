@@ -175,6 +175,7 @@ std::string Socket::receive(int n)
     char *c = new char[n];
     int recvBytes = receive(c, n);
     std::string res(c, recvBytes);
+    delete[] c;
     return res;
 }
 int Socket::sendTo(const char *address, const char *port, const char *buffer, int n)
@@ -223,6 +224,7 @@ int Socket::receiveFrom(std::string *address, std::string *port, char *buffer, i
         char *peer_addr_str = new char[INET_ADDRSTRLEN];
         inet_ntop(AF_INET, &sAddr.sin_addr, peer_addr_str, INET_ADDRSTRLEN);
         *address = std::string(peer_addr_str);
+        delete[] peer_addr_str;
     }
     if (port != NULL)
     {
@@ -235,6 +237,7 @@ std::string Socket::receiveFrom(std::string *sender, std::string *port, int n)
     char *c = new char[n];
     int recvBytes = receiveFrom(sender, port, c, n);
     std::string res(c, recvBytes);
+    delete[] c;
     return res;
 }
 Socket::~Socket()
