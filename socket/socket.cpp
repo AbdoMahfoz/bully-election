@@ -11,7 +11,8 @@ Socket::Socket(bool isTcp, bool isServer)
     _socket = INVALID_SOCKET;
     this->isServer = isServer;
     this->isTcp = isTcp;
-    this->reuseAddress = this->broadcast = false;
+    this->reuseAddress = this->broadcast = this->isInMulticast = false;
+    this->multiCastAddress = this->multiCastPort = nullptr;
     lock.lock();
     instanceCount++;
     if (instanceCount == 1)
@@ -72,6 +73,26 @@ void Socket::setAddressPortReuse(bool value)
 void Socket::setBroadcast(bool value)
 {
     broadcast = value;
+}
+void Socket::joinMulticast(const char *groupIp, const char *groupPort)
+{
+    ip_mreq mreq;
+    mreq.imr_multiaddr.s_addr = inet_addr(groupIp);
+    mreq.imr_interface.s_addr = htonl(INADDR_ANY);
+    int iResult = setsockopt(_socket, IPPROTO_IP, IP_ADD_MEMBERSHIP, (char *)&mreq, sizeof(mreq));
+    if (iResult != 0)
+    {
+        throw socketException(iResult, "when joining multicast");
+    }
+    if (isInMulticast)
+    {
+        delete[] multiCastAddress, multiCastPort;
+    }
+    isInMulticast = true;
+    multiCastAddress = new char[strlen(groupIp)];
+    strcpy(multiCastAddress, groupIp);
+    multiCastPort = new char[strlen(groupPort)];
+    strcpy(multiCastPort, groupPort);
 }
 void Socket::bind(const char *port)
 {
@@ -231,10 +252,15 @@ int Socket::sendTo(const char *address, const char *port, const char *buffer, in
     int sentBytes = sendto(_socket, buffer, n, 0, result->ai_addr, (int)result->ai_addrlen);
     if (sentBytes == SOCKET_ERROR)
     {
-        throw socketException(sentBytes, "when udp sending");
+        throw socketException(WSAGetLastError(), "when udp sending");
     }
     freeaddrinfo(result);
     return sentBytes;
+}
+int Socket::sendToMultiCast(const char *buffer, int n)
+{
+    std::cout << multiCastAddress << ':' << multiCastPort << '\n';
+    return sendTo(multiCastAddress, multiCastPort, buffer, n);
 }
 int Socket::receiveFrom(std::string *address, std::string *port, char *buffer, int n)
 {
@@ -280,6 +306,7 @@ Socket::~Socket()
     {
         close();
     }
+    delete[] multiCastAddress, multiCastPort;
     std::unique_lock<std::mutex> lock(m, std::defer_lock);
     lock.lock();
     instanceCount--;

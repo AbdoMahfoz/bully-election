@@ -33,6 +33,8 @@ private:
     bool isServer;
     bool isTcp;
     bool reuseAddress, broadcast;
+    bool isInMulticast;
+    char *multiCastAddress, *multiCastPort;
     addrinfo *getHints();
     void activateop(bool val, int op);
     void activatePortReuse();
@@ -43,6 +45,7 @@ public:
     ~Socket();
     void setAddressPortReuse(bool value);
     void setBroadcast(bool value);
+    void joinMulticast(const char *groupIp, const char *groupPort);
     //tcp server
     void bind(const char *port);
     Socket *accept();
@@ -55,6 +58,7 @@ public:
     void close();
     //udp
     int sendTo(const char *address, const char *port, const char *buffer, int n = -1);
+    int sendToMultiCast(const char *buffer, int n = -1);
     int receiveFrom(std::string *address, std::string *port, char *buffer, int n);
     std::string receiveFrom(std::string *address, std::string *port, int n = 1024);
 };

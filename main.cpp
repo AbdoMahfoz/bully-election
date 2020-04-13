@@ -36,6 +36,7 @@ void udpTest()
         std::string sender, port;
         server.setAddressPortReuse(true);
         server.bind("8234");
+        server.joinMulticast("239.123.123.123", "8234");
         std::string res = server.receiveFrom(&sender, &port);
         std::cout << sender << ':' << port << " = " << res << '\n';
         server.sendTo(sender.c_str(), port.c_str(), "Yes");
@@ -43,7 +44,7 @@ void udpTest()
     else
     {
         Socket client(false);
-        client.sendTo(NULL, "8234", "Confirm");
+        client.sendTo("239.123.123.123", "8234", "Confirm");
         std::cout << client.receiveFrom(NULL, NULL) << '\n';
     }
 }
