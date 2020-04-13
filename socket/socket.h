@@ -31,9 +31,11 @@ private:
     static addrinfo *udpHints, *tcpHints;
     static std::mutex m;
     bool isTcp, reuseAddress, broadcast;
+    int timeout;
     void activateop(bool val, int op);
     void activatePortReuse();
     void activateBroadcast();
+    void activateTimeout();
 protected:
     addrinfo *getHints();
     SOCKET _socket;
@@ -42,6 +44,7 @@ public:
     virtual ~Socket();
     void setAddressPortReuse(bool value);
     void setBroadcast(bool value);
+    void setTimeOut(int milliseconds);
     void bind(const char *port);
     
 };

@@ -11,6 +11,7 @@ Socket::Socket(bool isTcp)
     _socket = INVALID_SOCKET;
     this->isTcp = isTcp;
     this->reuseAddress = this->broadcast = false;
+    this->timeout = 0;
     lock.lock();
     instanceCount++;
     if (instanceCount == 1)
@@ -63,6 +64,17 @@ void Socket::activateBroadcast()
         activateop(broadcast, SO_BROADCAST);
     }
 }
+void Socket::activateTimeout()
+{
+    if(timeout > 0)
+    {    
+        int iResult = setsockopt(_socket, SOL_SOCKET, SO_RCVTIMEO, (const char*)&timeout, sizeof(timeout));
+        if (iResult != 0)
+        {
+            throw socketException(iResult, "when setting timeout");
+        }
+    }
+}
 void Socket::setAddressPortReuse(bool value)
 {
     reuseAddress = value;
@@ -71,7 +83,10 @@ void Socket::setBroadcast(bool value)
 {
     broadcast = value;
 }
-
+void Socket::setTimeOut(int timeout)
+{
+    this->timeout = timeout;
+}
 void Socket::bind(const char *port)
 {
     addrinfo *result;
@@ -89,6 +104,7 @@ void Socket::bind(const char *port)
         }
         activateBroadcast();
         activatePortReuse();
+        activateTimeout();
         iResult = ::bind(_socket, result->ai_addr, (int)result->ai_addrlen);
         if (iResult == SOCKET_ERROR)
         {

@@ -28,14 +28,13 @@ bool tcpSocket::connect(const char *address, const char *port)
     int iResult = getaddrinfo(address, port, getHints(), &result);
     if (iResult != 0)
     {
-        throw socketException(iResult, "when connecting");
+        throw socketException(iResult, "when resolving connect address");
     }
     while (true)
     {
-        _socket = socket(result->ai_family, result->ai_socktype, result->ai_protocol);
-        if (_socket == INVALID_SOCKET)
+        if(_socket == INVALID_SOCKET)
         {
-            throw socketException(WSAGetLastError(), "when connecting");
+            bind("0");
         }
         iResult = ::connect(_socket, result->ai_addr, (int)result->ai_addrlen);
         if (iResult == SOCKET_ERROR)
