@@ -106,6 +106,7 @@ void offer()
 
 void unit::main(int id)
 {
+    unit::intializeLogger();
     myId = std::to_string(id);
     acceptSocket.bind("0");
     acceptPort = acceptSocket.getPort();

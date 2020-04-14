@@ -7,6 +7,8 @@
 namespace unit
 {
     void main(int id);
-    void log(const std::string& msg);
-    void log(const char* msg);
+    void intializeLogger();
+    void log(const std::string& id, const std::string& msg);
+    void log(const char* id, const char* msg);
+    void terminateLogger();
 }
