@@ -2,11 +2,7 @@
 #define SOCKET_CLASS
 
 #include <winsock2.h>
-#include <iphlpapi.h>
-#include <ws2tcpip.h>
-#include <iostream>
 #include <string>
-#include <mutex>
 
 #pragma comment(lib, "Ws2_32.lib")
 
@@ -26,10 +22,6 @@ public:
 class Socket
 {
 private:
-    static int instanceCount;
-    static WSAData *wsaData;
-    static addrinfo *udpHints, *tcpHints;
-    static std::mutex m;
     bool isTcp, reuseAddress, broadcast;
     int timeout;
     void activateop(bool val, int op);

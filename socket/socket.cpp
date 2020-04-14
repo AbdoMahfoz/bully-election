@@ -1,9 +1,12 @@
 #include "socket.h"
+#include <ws2tcpip.h>
+#include <string>
+#include <mutex>
 
-WSAData *Socket::wsaData = nullptr;
-addrinfo *Socket::tcpHints, *Socket::udpHints = nullptr;
-int Socket::instanceCount = 0;
-std::mutex Socket::m;
+WSAData *wsaData = nullptr;
+addrinfo *tcpHints, *udpHints = nullptr;
+int instanceCount = 0;
+std::mutex m;
 
 Socket::Socket(bool isTcp)
 {

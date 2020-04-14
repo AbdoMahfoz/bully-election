@@ -1,4 +1,6 @@
 #include "socket.h"
+#include <ws2tcpip.h>
+#include <string>
 
 udpSocket::udpSocket() : Socket(false)
 {
