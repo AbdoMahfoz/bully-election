@@ -36,6 +36,7 @@ private:
     void activatePortReuse();
     void activateBroadcast();
     void activateTimeout();
+    void getSocketBinding(char** address, int* port);
 protected:
     addrinfo *getHints();
     SOCKET _socket;
@@ -46,7 +47,8 @@ public:
     void setBroadcast(bool value);
     void setTimeOut(int milliseconds);
     void bind(const char *port);
-    
+    std::string getPort();
+    std::string getAddress();
 };
 
 class tcpSocket : public Socket

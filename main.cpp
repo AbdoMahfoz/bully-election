@@ -11,11 +11,6 @@ int main(int argc, char** argv)
     }
     else
     {
-        udpSocket s;
-        while(true)
-        {
-            s.sendTo("239.125.125.125", "8233", argv[1]);
-            std::this_thread::sleep_for(std::chrono::seconds(1));
-        }
+        unit::main();
     }
 }

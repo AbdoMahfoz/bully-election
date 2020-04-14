@@ -1,3 +1,4 @@
+#include "../unit/unit.h"
 
 class controllerException : std::exception
 {

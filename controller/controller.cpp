@@ -83,7 +83,7 @@ void monitor()
 {
     udpSocket s;
     s.setTimeOut(100);
-    s.joinMulticast("239.125.125.125", "8233");
+    s.joinMulticast(UNICAST_IP, UNICAST_LOG_PORT);
     while(monitorActive)
     {
         try

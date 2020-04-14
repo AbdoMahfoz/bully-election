@@ -136,3 +136,39 @@ Socket::~Socket()
     }
     lock.unlock();
 }
+void Socket::getSocketBinding(char** address, int* port)
+{
+    sockaddr_in sin;
+    int addrlen = sizeof(sin);
+    int iResult = getsockname(_socket, (sockaddr *)&sin, &addrlen);
+    if(iResult == 0)
+    {
+        if(port != NULL)
+        {
+            *port = ntohs(sin.sin_port);
+        }
+        if(address != NULL)
+        {
+            *address = new char[INET_ADDRSTRLEN];
+            inet_ntop(AF_INET, &sin.sin_addr, *address, INET_ADDRSTRLEN);
+        }
+    }
+    else
+    {
+        throw socketException(iResult, "when getting socket binding");
+    }
+}
+std::string Socket::getPort()
+{
+    int port;
+    getSocketBinding(NULL, &port);
+    return std::to_string(port);
+}
+std::string Socket::getAddress()
+{
+    char* address;
+    getSocketBinding(&address, NULL);
+    std::string res(address);
+    delete[] address;
+    return res;
+}
