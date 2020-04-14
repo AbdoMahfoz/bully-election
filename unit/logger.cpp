@@ -6,21 +6,24 @@
 #include <sstream>
 #include <mutex>
 #include <condition_variable>
+#include <ctime>
 
-std::queue<std::pair<std::string, std::string>> q;
-std::mutex m;
+std::queue<std::string> q;
+std::mutex outputMutex;
 std::condition_variable cv;
 std::thread *outputThread = nullptr;
-bool terminate = false;
+std::string myLogId;
+bool terminateOutputThread = false;
 
 void output()
 {
-    std::unique_lock<std::mutex> lock(m);
+    std::unique_lock<std::mutex> lock(outputMutex, std::defer_lock);
     std::string payload;
     std::stringstream ss;
-    time_t currentTime;
+    char* currentTime;
     udpSocket socket;
-    while(!terminate)
+    lock.lock();
+    while(!terminateOutputThread)
     {
         if(q.empty())
         {
@@ -28,35 +31,40 @@ void output()
         }
         while(!q.empty())
         {
-            auto& s = q.front();
-            currentTime = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+            auto s = q.front();
+            q.pop();
+            lock.unlock();
+            auto time = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+            currentTime = std::ctime(&time);
+            currentTime[strlen(currentTime) - 1] = '\0';
             ss.str("");
-            ss << '[' << currentTime << "][" << s.first << "]: " << s.second;
+            ss << '[' << currentTime << "][" << myLogId << "]: " << s;
             payload = ss.str();
             std::cout << payload << '\n';
             socket.sendTo(UNIT_MULTICAST_IP, UNIT_LOG_PORT, payload.c_str());
-            q.pop();
+            lock.lock();
         }
     }
 }
-void unit::intializeLogger()
+void unit::intializeLogger(int id)
 {
+    myLogId = std::to_string(id);
     outputThread = new std::thread(output);
 }
 void unit::terminateLogger()
 {
-    terminate = true;
+    terminateOutputThread = true;
     cv.notify_all();
     outputThread->join();
     delete outputThread;
 }
-void unit::log(const std::string& id, const std::string& msg)
+void unit::log(const std::string& msg)
 {
-    std::unique_lock<std::mutex> lock(m);
-    q.push({id, msg});
+    std::unique_lock<std::mutex> lock(outputMutex);
+    q.push(msg);
     cv.notify_all();
 }
-void unit::log(const char* id, const char* msg)
+void unit::log(const char* msg)
 {
-    unit::log(std::string(id), std::string(msg));
+    unit::log(std::string(msg));
 }

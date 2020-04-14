@@ -30,50 +30,52 @@ bool operator<(const unitData& lhs, const unitData& rhs)
 }
 
 std::map<unitData, tcpSocket*> others;
-std::string acceptPort, myId;
+std::string acceptPort, discoverPort, myId;
 tcpSocket acceptSocket;
 std::thread *acceptThread, *offerThread;
 std::mutex othersMutex;
-
 void discover()
 {
+    unit::log("Started discovering");
     udpSocket s;
     s.setTimeOut(3000);
+    s.bind("0");
+    discoverPort = s.getPort();
     std::string addr;
     std::string msg;
     std::unique_lock<std::mutex> lock(othersMutex, std::defer_lock);
-    for(int i = 0; i < 5; i++)
+    s.sendTo(UNIT_MULTICAST_IP, UNIT_DISCOVER_PORT, "BULLY DISCOVER");
+    while(true)
     {
-        s.sendTo(UNIT_MULTICAST_IP, UNIT_DISCOVER_PORT, "BULLY DISCOVER");
-        while(true)
+        try
         {
-            try
+            msg = s.receiveFrom(&addr, NULL);
+        }
+        catch(socketException)
+        {
+            break;
+        }
+        if(msg.find("BULLY OFFER") == 0)
+        {
+            std::string port = msg.substr(msg.rfind(' ') + 1);
+            unitData l(addr, port);
+            lock.lock();
+            if(others.find(l) == others.end())
             {
-                msg = s.receiveFrom(&addr, NULL);
-            }
-            catch(socketException)
-            {
-                break;
-            }
-            if(msg.find("BULLY OFFER") == 0)
-            {
-                std::string port = msg.substr(msg.rfind(' ') + 1);
-                unitData l(addr, port);
-                lock.lock();
-                if(others.find(l) == others.end())
-                {
-                    tcpSocket* tcp = new tcpSocket();
-                    if(tcp->connect(addr.c_str(), port.c_str()))
-                    {   
-                        l.id = stoi(tcp->receive());
-                        tcp->send(myId.c_str());
-                        others[l] = tcp;
-                    }
+                tcpSocket* tcp = new tcpSocket();
+                if(tcp->connect(addr.c_str(), port.c_str()))
+                {   
+                    l.id = stoi(tcp->receive());
+                    tcp->send(myId.c_str());
+                    unit::log("Discoverd " + std::to_string(l.id));
+                    others[l] = tcp;
                 }
-                lock.unlock();
             }
+            lock.unlock();
         }
     }
+    unit::log("Stopped discovering");
+    unit::log("Number of discoverd clients: " + std::to_string(others.size()));
 }
 void tcpAccept()
 {
@@ -84,6 +86,7 @@ void tcpAccept()
         unitData l(client->getAddress(), client->getPort());
         client->send(myId.c_str());
         l.id = stoi(client->receive());
+        unit::log("Discoverd " + std::to_string(l.id));
         lock.lock();
         others[l] = client;
         lock.unlock();
@@ -99,6 +102,10 @@ void offer()
         msg = s.receiveFrom(&addr, &port);
         if(msg == "BULLY DISCOVER")
         {
+            if(port == discoverPort)
+            {
+                continue;
+            }
             s.sendTo(addr.c_str(), port.c_str(), (std::string("BULLY OFFER ") + acceptPort).c_str());
         }
     }
@@ -106,11 +113,16 @@ void offer()
 
 void unit::main(int id)
 {
-    unit::intializeLogger();
+    unit::intializeLogger(id);
     myId = std::to_string(id);
     acceptSocket.bind("0");
     acceptPort = acceptSocket.getPort();
     acceptThread = new std::thread(tcpAccept);
     offerThread = new std::thread(offer);
+    unit::log("Hello, world!");
     discover();
+    while(true)
+    {
+        std::this_thread::sleep_for(std::chrono::seconds(1));
+    }
 }

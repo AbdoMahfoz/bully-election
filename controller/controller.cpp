@@ -16,17 +16,39 @@ struct Process
 
 std::map<int, Process> processMap;
 
-void controller::createUnit(int id)
+Process getNewProcess(int id)
 {
+    HANDLE out_in, out_out, in_in, in_out;
+    SECURITY_ATTRIBUTES saAttr; 
+    saAttr.nLength = sizeof(SECURITY_ATTRIBUTES); 
+    saAttr.bInheritHandle = TRUE; 
+    saAttr.lpSecurityDescriptor = NULL;
+    if (!CreatePipe(&out_in, &out_out, &saAttr, 0)) 
+    {
+        throw controllerException("Error when creating cout pipe");
+    }
+    if (!CreatePipe(&in_in, &in_out, &saAttr, 0)) 
+    {
+        throw controllerException("Error when creating cin pipe");
+    }
     Process p;
     p.id = id;
     ZeroMemory(&p.si, sizeof(p.si));
 	p.si.cb = sizeof(p.si);
 	ZeroMemory(&p.pi, sizeof(p.pi));
+    p.si.hStdError = out_in;
+    p.si.hStdOutput = out_in;
+    p.si.hStdInput = in_out;
+    p.si.dwFlags |= STARTF_USESTDHANDLES;
+    return p;
+}
+void controller::createUnit(int id)
+{
+    Process p = getNewProcess(id);
     std::wstringstream ss;
     ss << L"a.exe " << id;
 	if(CreateProcessW(NULL, &ss.str()[0],
-                      NULL, NULL, FALSE, 0, NULL, NULL, &p.si, &p.pi))
+                      NULL, NULL, TRUE, 0, NULL, NULL, &p.si, &p.pi))
     {
         processMap[id] = p;
     }
