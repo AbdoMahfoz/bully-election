@@ -30,7 +30,8 @@ class unit
 {
 private:
     static std::map<unitData, std::thread*> others;
-    static std::string acceptPort, discoverPort, myId, coordId;
+    static std::string acceptPort, discoverPort, myId;
+    static int coordId;
     static tcpSocket acceptSocket;
     static std::thread *acceptThread, *offerThread, *electionsThread;
     static std::mutex othersMutex, coordMutex;
@@ -41,6 +42,7 @@ private:
     static void tcpAccept();
     //communications
     static void communicate(unitData data, tcpSocket* socket);
+    static void initElections();
     static void elections();
     //logger
     static void output();

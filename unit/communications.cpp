@@ -4,12 +4,17 @@
 
 void unit::communicate(unitData data, tcpSocket* socket)
 {
+    bool isCoord = false;
     try
     {
         socket->setTimeOut(2000);
         std::unique_lock<std::mutex> lock(othersMutex, std::defer_lock);
+        std::unique_lock<std::mutex> coordLock(coordMutex, std::defer_lock);
         while(true)
         {
+            coordLock.lock();
+            isCoord = (data.id == coordId);
+            coordLock.unlock();
             try
             {
                 socket->send("ALIVE");
@@ -22,6 +27,10 @@ void unit::communicate(unitData data, tcpSocket* socket)
             {
                 break;
             }
+            if(isCoord)
+            {
+                unit::log("Coordinator " + std::to_string(data.id) + " alive");
+            }
             std::this_thread::sleep_for(std::chrono::seconds(1));
         }
         socket->forceClose();
@@ -32,12 +41,24 @@ void unit::communicate(unitData data, tcpSocket* socket)
         delete itr->second;
         others.erase(itr);
         lock.unlock();
-        unit::log("Lost connection to " + std::to_string(data.id));
+        if(isCoord)
+        {
+            unit::log("Lost connection to coordinator, reinitiating elections");
+            initElections();
+        }
+        else
+        {
+            unit::log("Lost connection to " + std::to_string(data.id));
+        }
     }
     catch(std::exception e)
     {
         unit::log(std::string("ERROR in communicate(): ") + e.what());
     }
+}
+void unit::initElections()
+{
+    startElections = true;
 }
 void unit::elections()
 {
@@ -46,6 +67,7 @@ void unit::elections()
     socket.setTimeOut(1000);
     socket.joinMulticast(UNIT_MULTICAST_IP, UNIT_ELECTIONS_PORT);
     std::stringstream ss;
+    std::unique_lock<std::mutex> lock(coordMutex, std::defer_lock);
     bool electing = false;
     while(true)
     {
@@ -62,17 +84,25 @@ void unit::elections()
             }
             if(msg.find("VICTORY ") == 0)
             {
-                std::string newCoordId = msg.substr(msg.rfind(' ') + 1);
+                int newCoordId = std::stoi(msg.substr(msg.rfind(' ') + 1));
                 if(newCoordId != coordId)
                 {
-                    std::unique_lock<std::mutex> lock(coordMutex);
-                    coordId = msg.substr(msg.rfind(' ') + 1);
-                    unit::log("New coordinator: " + coordId);
+                    std::string coordIdStr = msg.substr(msg.rfind(' ') + 1);
+                    lock.lock();
+                    coordId = std::stoi(coordIdStr);
+                    lock.unlock();
+                    if(coordIdStr != myId)
+                    {
+                        unit::log("New coordinator: " + std::to_string(coordId));
+                    }
                 }
             }
         }
         if(startElections || msg.find("ELECT ") == 0)
         {
+            lock.lock();
+            coordId = -1;
+            lock.unlock();
             ss = std::stringstream(msg);
             while(true)
             {

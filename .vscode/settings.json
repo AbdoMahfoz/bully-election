@@ -40,6 +40,16 @@
         "xstddef": "cpp",
         "xstring": "cpp",
         "xtr1common": "cpp",
-        "xutility": "cpp"
+        "xutility": "cpp",
+        "algorithm": "cpp",
+        "condition_variable": "cpp",
+        "ctime": "cpp",
+        "deque": "cpp",
+        "fstream": "cpp",
+        "map": "cpp",
+        "queue": "cpp",
+        "sstream": "cpp",
+        "vector": "cpp",
+        "xtree": "cpp"
     }
 }

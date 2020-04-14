@@ -1,7 +1,8 @@
 #include "unit.h"
 
 std::map<unitData, std::thread*> unit::others;
-std::string unit::acceptPort, unit::discoverPort, unit::myId, unit::coordId;
+std::string unit::acceptPort, unit::discoverPort, unit::myId;
+int unit::coordId;
 tcpSocket unit::acceptSocket;
 std::thread *unit::acceptThread, *unit::offerThread, *unit::electionsThread;
 std::mutex unit::othersMutex, unit::coordMutex;
