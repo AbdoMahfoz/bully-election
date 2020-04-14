@@ -1,6 +1,4 @@
-#include <iostream>
 #include "controller/controller.h"
-#include "socket/socket.h"
 #include "unit/unit.h"
 
 int main(int argc, char** argv)
@@ -11,6 +9,6 @@ int main(int argc, char** argv)
     }
     else
     {
-        unit::main();
+        unit::main(std::stoi(argv[1]));
     }
 }

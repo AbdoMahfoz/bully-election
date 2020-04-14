@@ -15,18 +15,18 @@ public:
         this->address = address;
         this->port = port;
     }
-    bool operator<(const unitData& other)
-    {
-        if(address == other.address)
-        {
-            return port < other.port;
-        }
-        else
-        {
-            return address < other.address;
-        }
-    }
 };
+bool operator<(const unitData& lhs, const unitData& rhs)
+{
+    if(lhs.address == rhs.address)
+    {
+        return lhs.port < rhs.port;
+    }
+    else
+    {
+        return lhs.address < rhs.address;
+    }
+}
 
 std::map<unitData, tcpSocket*> others;
 std::string acceptPort, myId;
@@ -54,7 +54,7 @@ void discover()
             {
                 break;
             }
-            if(msg._Starts_with("BULLY OFFER"))
+            if(msg.find("BULLY OFFER") == 0)
             {
                 std::string port = msg.substr(msg.rfind(' ') + 1);
                 unitData l(addr, port);
