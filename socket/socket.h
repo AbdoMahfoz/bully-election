@@ -19,10 +19,16 @@ public:
     }
 };
 
+class socketTimeoutException : public socketException
+{
+public:
+    socketTimeoutException() : socketException(10060, "Timeout"){}
+};
+
 class Socket
 {
 private:
-    bool isTcp, reuseAddress, broadcast;
+    bool isTcp, reuseAddress, broadcast, updateTimeout, updateReuse, updateBroadcast;
     int timeout;
     void activateop(bool val, int op);
     void activatePortReuse();

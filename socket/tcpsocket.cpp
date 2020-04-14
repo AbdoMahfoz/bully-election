@@ -80,14 +80,28 @@ int tcpSocket::receive(char *buffer, int n)
     iResult = recv(_socket, buffer, n, 0);
     if (iResult == SOCKET_ERROR)
     {
-        throw socketException(WSAGetLastError(), "when receiving data");
+        int err = WSAGetLastError();
+        if(err == WSAETIMEDOUT)
+        {
+            throw socketTimeoutException();
+        }
+        throw socketException(err, "when receiving data");
     }
     return iResult;
 }
 std::string tcpSocket::receive(int n)
 {
     char *c = new char[n];
-    int recvBytes = receive(c, n);
+    int recvBytes = 0;
+    try
+    {
+        recvBytes = receive(c, n);
+    }
+    catch(socketException e)
+    {
+        delete[] c;
+        throw e;
+    }
     std::string res(c, recvBytes);
     delete[] c;
     return res;

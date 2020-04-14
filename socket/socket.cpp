@@ -15,6 +15,7 @@ Socket::Socket(bool isTcp)
     this->isTcp = isTcp;
     this->reuseAddress = this->broadcast = false;
     this->timeout = 0;
+    this->updateTimeout = this->updateReuse = this->updateBroadcast = false;
     lock.lock();
     instanceCount++;
     if (instanceCount == 1)
@@ -55,22 +56,25 @@ void Socket::activateop(bool value, int op)
 }
 void Socket::activatePortReuse()
 {
-    if (reuseAddress)
+    if (updateReuse)
     {
+        updateReuse = false;
         activateop(reuseAddress, SO_REUSEADDR);
     }
 }
 void Socket::activateBroadcast()
 {
-    if (broadcast)
+    if (updateBroadcast)
     {
+        updateBroadcast = false;
         activateop(broadcast, SO_BROADCAST);
     }
 }
 void Socket::activateTimeout()
 {
-    if(timeout > 0)
+    if(updateTimeout)
     {    
+        updateTimeout = false;
         int iResult = setsockopt(_socket, SOL_SOCKET, SO_RCVTIMEO, (const char*)&timeout, sizeof(timeout));
         if (iResult != 0)
         {
@@ -81,6 +85,7 @@ void Socket::activateTimeout()
 void Socket::setAddressPortReuse(bool value)
 {
     reuseAddress = value;
+    updateReuse = true;
     if(_socket != INVALID_SOCKET)
     {
         activatePortReuse();
@@ -89,6 +94,7 @@ void Socket::setAddressPortReuse(bool value)
 void Socket::setBroadcast(bool value)
 {
     broadcast = value;
+    updateBroadcast = true;
     if(_socket != INVALID_SOCKET)
     {
         activateBroadcast();
@@ -97,6 +103,7 @@ void Socket::setBroadcast(bool value)
 void Socket::setTimeOut(int timeout)
 {
     this->timeout = timeout;
+    updateTimeout = true;
     if(_socket != INVALID_SOCKET)
     {
         activateTimeout();

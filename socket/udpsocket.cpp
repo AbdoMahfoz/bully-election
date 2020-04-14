@@ -77,7 +77,12 @@ int udpSocket::receiveFrom(std::string *address, std::string *port, char *buffer
     int recvBytes = recvfrom(_socket, buffer, n, 0, (sockaddr *)&sAddr, &sAddrLen);
     if (recvBytes == SOCKET_ERROR)
     {
-        throw socketException(WSAGetLastError(), "when udp receiving");
+        int err = WSAGetLastError();
+        if(err == WSAETIMEDOUT)
+        {
+            throw socketTimeoutException();
+        }
+        throw socketException(err, "when udp receiving");
     }
     if (address != NULL)
     {
@@ -95,7 +100,16 @@ int udpSocket::receiveFrom(std::string *address, std::string *port, char *buffer
 std::string udpSocket::receiveFrom(std::string *sender, std::string *port, int n)
 {
     char *c = new char[n];
-    int recvBytes = receiveFrom(sender, port, c, n);
+    int recvBytes = 0;
+    try
+    {
+        recvBytes = receiveFrom(sender, port, c, n);
+    }
+    catch(socketTimeoutException e)
+    {
+        delete[] c;
+        throw e;
+    }
     std::string res(c, recvBytes);
     delete[] c;
     return res;
