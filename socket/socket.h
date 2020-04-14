@@ -56,6 +56,7 @@ public:
     int receive(char *buffer, int n);
     std::string receive(int n = 1024);
     void close();
+    void forceClose();
 };
 
 class udpSocket : public Socket

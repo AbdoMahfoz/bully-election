@@ -96,6 +96,7 @@ void tcpSocket::close()
 {
     if(isConnected)
     {
+        isConnected = false;
         int iResult = shutdown(_socket, SD_SEND);
         if (iResult == SOCKET_ERROR)
         {
@@ -109,6 +110,12 @@ void tcpSocket::close()
             iResult = receive(buffer, 1024);
         } while (iResult > 0);
     }
+    closesocket(_socket);
+    _socket = INVALID_SOCKET;
+}
+void tcpSocket::forceClose()
+{
+    isConnected = false;
     closesocket(_socket);
     _socket = INVALID_SOCKET;
 }

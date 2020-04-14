@@ -81,14 +81,26 @@ void Socket::activateTimeout()
 void Socket::setAddressPortReuse(bool value)
 {
     reuseAddress = value;
+    if(_socket != INVALID_SOCKET)
+    {
+        activatePortReuse();
+    }
 }
 void Socket::setBroadcast(bool value)
 {
     broadcast = value;
+    if(_socket != INVALID_SOCKET)
+    {
+        activateBroadcast();
+    }
 }
 void Socket::setTimeOut(int timeout)
 {
     this->timeout = timeout;
+    if(_socket != INVALID_SOCKET)
+    {
+        activateTimeout();
+    }
 }
 void Socket::bind(const char *port)
 {
