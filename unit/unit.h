@@ -30,10 +30,11 @@ class unit
 {
 private:
     static std::map<unitData, std::thread*> others;
-    static std::string acceptPort, discoverPort, myId;
+    static std::string acceptPort, discoverPort, myId, coordId;
     static tcpSocket acceptSocket;
-    static std::thread *acceptThread, *offerThread;
-    static std::mutex othersMutex;
+    static std::thread *acceptThread, *offerThread, *electionsThread;
+    static std::mutex othersMutex, coordMutex;
+    static bool startElections;
     //discovery
     static void discover();
     static void offer();

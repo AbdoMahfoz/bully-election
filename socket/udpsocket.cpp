@@ -114,6 +114,10 @@ std::string udpSocket::receiveFrom(std::string *sender, std::string *port, int n
     delete[] c;
     return res;
 }
+std::stringstream udpSocket::receiveStreamFrom(std::string *address, std::string *port, int n)
+{
+    return std::stringstream(receiveFrom(address, port, n), std::ios_base::app|std::ios_base::in|std::ios_base::out);
+}
 udpSocket::~udpSocket()
 {
     delete[] multiCastAddress, multiCastPort;

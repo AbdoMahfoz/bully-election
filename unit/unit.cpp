@@ -1,10 +1,11 @@
 #include "unit.h"
 
 std::map<unitData, std::thread*> unit::others;
-std::string unit::acceptPort, unit::discoverPort, unit::myId;
+std::string unit::acceptPort, unit::discoverPort, unit::myId, unit::coordId;
 tcpSocket unit::acceptSocket;
-std::thread *unit::acceptThread, *unit::offerThread;
-std::mutex unit::othersMutex;
+std::thread *unit::acceptThread, *unit::offerThread, *unit::electionsThread;
+std::mutex unit::othersMutex, unit::coordMutex;
+bool unit::startElections = true;
 
 bool operator<(const unitData& lhs, const unitData& rhs)
 {
@@ -28,8 +29,9 @@ void unit::main(int id)
     offerThread = new std::thread(offer);
     unit::log("Hello, world!");
     discover();
+    electionsThread = new std::thread(elections);
     while(true)
     {
-        std::this_thread::sleep_for(std::chrono::seconds(1));
+        std::this_thread::sleep_for(std::chrono::seconds(10));
     }
 }

@@ -3,6 +3,7 @@
 
 #include <winsock2.h>
 #include <string>
+#include <sstream>
 
 #pragma comment(lib, "Ws2_32.lib")
 
@@ -61,6 +62,7 @@ public:
     int send(const char *buffer, int n = -1);
     int receive(char *buffer, int n);
     std::string receive(int n = 1024);
+    std::stringstream receiveStream(int n = 1024);
     void close();
     void forceClose();
 };
@@ -78,6 +80,7 @@ public:
     int sendTo(const char *address, const char *port, const char *buffer, int n = -1);
     int receiveFrom(std::string *address, std::string *port, char *buffer, int n);
     std::string receiveFrom(std::string *address, std::string *port, int n = 1024);
+    std::stringstream receiveStreamFrom(std::string *address, std::string *port, int n = 1024);
 };
 
 #endif

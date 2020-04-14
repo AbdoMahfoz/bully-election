@@ -106,6 +106,10 @@ std::string tcpSocket::receive(int n)
     delete[] c;
     return res;
 }
+std::stringstream tcpSocket::receiveStream(int n)
+{
+    return std::stringstream(receive(n), std::ios_base::app|std::ios_base::in|std::ios_base::out);
+}
 void tcpSocket::close()
 {
     if(isConnected)

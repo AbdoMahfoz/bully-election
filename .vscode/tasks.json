@@ -19,6 +19,7 @@
       "args": [
         "/Fe:a.exe",
         "/EHsc",
+        "/O2",
         "../*.cpp",
         "../socket/*.cpp",
         "../controller/*.cpp",

@@ -4,7 +4,7 @@ void unit::discover()
 {
     unit::log("Started discovering");
     udpSocket s;
-    s.setTimeOut(3000);
+    s.setTimeOut(1000);
     s.bind("0");
     discoverPort = s.getPort();
     std::string addr;
