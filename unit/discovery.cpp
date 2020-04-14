@@ -19,7 +19,7 @@ void unit::discover()
             {
                 msg = s.receiveFrom(&addr, NULL);
             }
-            catch(socketException)
+            catch(socketTimeoutException)
             {
                 break;
             }

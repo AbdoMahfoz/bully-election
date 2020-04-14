@@ -4,6 +4,7 @@
 #define UNIT_MULTICAST_IP "239.125.125.125"
 #define UNIT_DISCOVER_PORT "8330"
 #define UNIT_LOG_PORT "8331"
+#define UNIT_ELECTIONS_PORT "8332"
 
 #include <string>
 #include <map>
@@ -39,6 +40,7 @@ private:
     static void tcpAccept();
     //communications
     static void communicate(unitData data, tcpSocket* socket);
+    static void elections();
     //logger
     static void output();
     static void intializeLogger();

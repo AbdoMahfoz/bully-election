@@ -37,3 +37,7 @@ void unit::communicate(unitData data, tcpSocket* socket)
         unit::log(std::string("ERROR in communicate(): ") + e.what());
     }
 }
+void unit::elections()
+{
+    
+}

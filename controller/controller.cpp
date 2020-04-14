@@ -113,7 +113,7 @@ void monitor()
         {
             std::cout << s.receiveFrom(NULL, NULL) << '\n';
         }
-        catch(socketException){}
+        catch(socketTimeoutException){}
     }
 }
 char getChar()
