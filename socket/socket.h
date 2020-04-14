@@ -30,10 +30,10 @@ private:
     void activateTimeout();
     void getSocketBinding(char** address, int* port);
 protected:
+    Socket(bool isTcp);
     addrinfo *getHints();
     SOCKET _socket;
 public:
-    Socket(bool isTcp);
     virtual ~Socket();
     void setAddressPortReuse(bool value);
     void setBroadcast(bool value);

@@ -4,7 +4,6 @@
 #include <queue>
 #include <iostream>
 #include <sstream>
-#include <mutex>
 #include <condition_variable>
 #include <ctime>
 
@@ -12,10 +11,9 @@ std::queue<std::string> q;
 std::mutex outputMutex;
 std::condition_variable cv;
 std::thread *outputThread = nullptr;
-std::string myLogId;
 bool terminateOutputThread = false;
 
-void output()
+void unit::output()
 {
     std::unique_lock<std::mutex> lock(outputMutex, std::defer_lock);
     std::string payload;
@@ -38,7 +36,7 @@ void output()
             currentTime = std::ctime(&time);
             currentTime[strlen(currentTime) - 1] = '\0';
             ss.str("");
-            ss << '[' << currentTime << "][" << myLogId << "]: " << s;
+            ss << '[' << currentTime << "][" << myId << "]: " << s;
             payload = ss.str();
             std::cout << payload << '\n';
             socket.sendTo(UNIT_MULTICAST_IP, UNIT_LOG_PORT, payload.c_str());
@@ -46,9 +44,8 @@ void output()
         }
     }
 }
-void unit::intializeLogger(int id)
+void unit::intializeLogger()
 {
-    myLogId = std::to_string(id);
     outputThread = new std::thread(output);
 }
 void unit::terminateLogger()
