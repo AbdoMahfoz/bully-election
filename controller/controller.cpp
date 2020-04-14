@@ -14,7 +14,8 @@ struct Process
     PROCESS_INFORMATION pi;
 };
 
-std::map<int, Process> processMap;
+std::map<int, Process> controller::processMap;
+bool controller::monitorActive;
 
 Process getNewProcess(int id)
 {
@@ -82,11 +83,11 @@ void controller::terminateAllUnits()
     processMap.clear();
 }
 
-void clearConsole()
+void controller::clearConsole()
 {
     system("cls");
 }
-void listProcesses()
+void controller::listProcesses()
 {
     if(processMap.size() != 0)
     {
@@ -101,8 +102,8 @@ void listProcesses()
         std::cout << "---------------------------------\n";
     }
 }
-bool monitorActive;
-void monitor()
+
+void controller::monitor()
 {
     udpSocket s;
     s.setTimeOut(100);
@@ -123,7 +124,7 @@ char getChar()
     fflush(stdout);
     return c;
 }
-void handleMonitor()
+void controller::handleMonitor()
 {
     clearConsole();
     std::cout << "Monitor activated; press any key to stop monitoring at any time\n";
@@ -133,7 +134,7 @@ void handleMonitor()
     monitorActive = false;
     t.join();
 }
-void handleCreate()
+void controller::handleCreate()
 {
     clearConsole();
     listProcesses();
@@ -151,7 +152,7 @@ void handleCreate()
     }
     controller::createUnit(id);
 }
-void handleKill()
+void controller::handleKill()
 {
     clearConsole();
     listProcesses();
