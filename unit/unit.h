@@ -9,6 +9,8 @@
 #include <string>
 #include <map>
 #include <mutex>
+#include <vector>
+#include <set>
 #include "../socket/socket.h"
 
 struct unitData
@@ -17,11 +19,14 @@ public:
     int id;
     std::string address;
     std::string port;
+    bool* killSwitch;
     unitData(){}
-    unitData(std::string& address, std::string& port)
+    unitData(int id, std::string& address, std::string& port)
     {
+        this->id = id;
         this->address = address;
         this->port = port;
+        this->killSwitch = new bool(true);
     }
 };
 bool operator<(const unitData& lhs, const unitData& rhs);
@@ -30,13 +35,17 @@ class unit
 {
 private:
     static std::map<unitData, std::thread*> others;
+    static std::map<tcpSocket*, std::thread*> controlSockets;
+    static std::set<int> knownIds;
+    static std::thread *slaveThread;
     static std::string acceptPort, discoverPort, myId;
     static int coordId;
     static tcpSocket acceptSocket;
     static std::thread *acceptThread, *offerThread, *electionsThread;
-    static std::mutex othersMutex, coordMutex;
-    static bool startElections;
+    static std::mutex othersMutex, coordMutex, controlMutex;
+    static bool startElections, controlExists;
     //discovery
+    static void initDiscover();
     static void discover();
     static void offer();
     static void tcpAccept();
@@ -44,6 +53,13 @@ private:
     static void communicate(unitData data, tcpSocket* socket);
     static void initElections();
     static void elections();
+    //control
+    static void launchMaster(tcpSocket* socket);
+    static void launchSlave(tcpSocket* socket);
+    static void master(tcpSocket* socket);
+    static void slave(tcpSocket* socket);
+    static void terminator();
+    static void terminateControlThreads();
     //logger
     static void output();
     static void intializeLogger();

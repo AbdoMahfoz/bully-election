@@ -10,17 +10,58 @@ void unit::communicate(unitData data, tcpSocket* socket)
         socket->setTimeOut(2000);
         std::unique_lock<std::mutex> lock(othersMutex, std::defer_lock);
         std::unique_lock<std::mutex> coordLock(coordMutex, std::defer_lock);
-        while(true)
+        std::unique_lock<std::mutex> controlLock(controlMutex, std::defer_lock);
+        while(*data.killSwitch)
         {
             coordLock.lock();
             isCoord = (data.id == coordId);
             coordLock.unlock();
+            controlLock.lock();
+            if(isCoord && !controlExists)
+            {
+                tcpSocket s;
+                s.bind("0");
+                socket->send(("CONTROL " + s.getPort()).c_str());
+                tcpSocket* slave = s.accept();
+                launchSlave(slave);
+                unit::log("Control to coordinator connected");
+            }
+            controlLock.unlock();
             try
             {
                 socket->send("ALIVE");
-                if(socket->receive() != "ALIVE")
+                std::string msg = socket->receive();
+                if(msg != "ALIVE")
                 {
-                    break;
+                    if(msg.find("CONTROL") == 0)
+                    {
+                        controlLock.lock();
+                        if(coordId == std::stoi(myId))
+                        {
+                            tcpSocket* master = new tcpSocket();
+                            if( master->connect(socket->getTargetAddress().c_str(), 
+                                           msg.substr(msg.rfind(' ') + 1).c_str()))
+                            {
+                                launchMaster(master);
+                                unit::log("Controlling " + std::to_string(data.id));
+                            }
+                            else
+                            {
+                                unit::log("ERROR: Failed to control " + std::to_string(data.id));
+                            }
+                        }
+                        else
+                        {
+                            unit::log("WARNING: " + std::to_string(data.id) + 
+                                      " is treating me as the coordinator. Reinitating elections");
+                            initElections();
+                        }
+                        controlLock.unlock();
+                    }
+                    else
+                    {
+                        break;
+                    }
                 }
             }
             catch(socketException)
@@ -29,26 +70,31 @@ void unit::communicate(unitData data, tcpSocket* socket)
             }
             if(isCoord)
             {
-                unit::log("Coordinator " + std::to_string(data.id) + " alive");
+                //unit::log("Coordinator " + std::to_string(data.id) + " alive");
             }
             std::this_thread::sleep_for(std::chrono::seconds(1));
         }
         socket->forceClose();
         delete socket;
-        lock.lock();
-        auto itr = others.find(data);
-        itr->second->detach();
-        delete itr->second;
-        others.erase(itr);
-        lock.unlock();
-        if(isCoord)
+        if(*(data.killSwitch))
         {
-            unit::log("Lost connection to coordinator, reinitiating elections");
-            initElections();
-        }
-        else
-        {
-            unit::log("Lost connection to " + std::to_string(data.id));
+            lock.lock();
+            auto itr = others.find(data);
+            itr->second->detach();
+            delete itr->second;
+            others.erase(itr);
+            lock.unlock();
+            if(isCoord)
+            {
+                unit::log("Lost connection to coordinator, reinitiating elections");
+                initElections();
+            }
+            else
+            {
+                unit::log("Lost connection to " + std::to_string(data.id));
+            }
+            knownIds.erase(knownIds.find(data.id));
+            initDiscover();
         }
     }
     catch(std::exception e)
@@ -69,6 +115,8 @@ void unit::elections()
     std::stringstream ss;
     std::unique_lock<std::mutex> lock(coordMutex, std::defer_lock);
     bool electing = false;
+    bool discoverAfterElections = false;
+    int lastCord;
     while(true)
     {
         std::string msg;
@@ -85,15 +133,24 @@ void unit::elections()
             if(msg.find("VICTORY ") == 0)
             {
                 int newCoordId = std::stoi(msg.substr(msg.rfind(' ') + 1));
+                if(discoverAfterElections)
+                {
+                    initDiscover();
+                    discoverAfterElections = false;
+                }
                 if(newCoordId != coordId)
                 {
                     std::string coordIdStr = msg.substr(msg.rfind(' ') + 1);
                     lock.lock();
                     coordId = std::stoi(coordIdStr);
                     lock.unlock();
-                    if(coordIdStr != myId)
+                    if(lastCord != coordId)
                     {
-                        unit::log("New coordinator: " + std::to_string(coordId));
+                        if(coordIdStr != myId)
+                        {
+                            unit::log("New coordinator: " + std::to_string(coordId));
+                        }
+                        terminateControlThreads();
                     }
                 }
             }
@@ -101,6 +158,7 @@ void unit::elections()
         if(startElections || msg.find("ELECT ") == 0)
         {
             lock.lock();
+            lastCord = coordId;
             coordId = -1;
             lock.unlock();
             ss = std::stringstream(msg);
@@ -120,6 +178,11 @@ void unit::elections()
                     std::string key;
                     int electId;
                     ss >> key >> electId;
+                    if(knownIds.find(electId) == knownIds.end())
+                    {
+                        unit::log("Unknown Id " + std::to_string(electId) + " is electing, discover scheduled after elections");
+                        discoverAfterElections = true;
+                    }
                     if(key == "ELECT")
                     {
                         if(id != electId)

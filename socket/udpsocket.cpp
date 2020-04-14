@@ -110,6 +110,11 @@ std::string udpSocket::receiveFrom(std::string *sender, std::string *port, int n
         delete[] c;
         throw e;
     }
+    catch(socketException e)
+    {
+        delete[] c;
+        throw e;
+    }
     std::string res(c, recvBytes);
     delete[] c;
     return res;

@@ -54,6 +54,7 @@ class tcpSocket : public Socket
 {
 private:
     bool isConnected;
+    std::string targetAddress, targetPort;
 public:
     tcpSocket();
     ~tcpSocket();
@@ -63,6 +64,8 @@ public:
     int receive(char *buffer, int n);
     std::string receive(int n = 1024);
     std::stringstream receiveStream(int n = 1024);
+    const std::string& getTargetAddress();
+    const std::string& getTargetPort();
     void close();
     void forceClose();
 };

@@ -5,24 +5,21 @@ std::string unit::acceptPort, unit::discoverPort, unit::myId;
 int unit::coordId;
 tcpSocket unit::acceptSocket;
 std::thread *unit::acceptThread, *unit::offerThread, *unit::electionsThread;
-std::mutex unit::othersMutex, unit::coordMutex;
-bool unit::startElections = true;
+std::mutex unit::othersMutex, unit::coordMutex, unit::controlMutex;
+std::map<tcpSocket*, std::thread*> unit::controlSockets;
+std::thread *unit::slaveThread = nullptr;
+std::set<int> unit::knownIds;
+bool unit::startElections = true, unit::controlExists = false;
 
 bool operator<(const unitData& lhs, const unitData& rhs)
 {
-    if(lhs.address == rhs.address)
-    {
-        return lhs.port < rhs.port;
-    }
-    else
-    {
-        return lhs.address < rhs.address;
-    }
+    return lhs.id < rhs.id;
 }
 
 void unit::main(int id)
 {
     myId = std::to_string(id);
+    knownIds.insert(id);
     unit::intializeLogger();
     acceptSocket.bind("0");
     acceptPort = acceptSocket.getPort();

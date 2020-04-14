@@ -5,6 +5,7 @@
 tcpSocket::tcpSocket() : Socket(true)
 {
     this->isConnected = false;
+    this->targetAddress = this->targetPort = "";
 }
 
 tcpSocket *tcpSocket::accept()
@@ -14,7 +15,13 @@ tcpSocket *tcpSocket::accept()
         throw socketException(WSAGetLastError(), "when listening");
     }
     SOCKET resSocket = INVALID_SOCKET;
-    resSocket = ::accept(_socket, NULL, NULL);
+    sockaddr_in sAddr;
+    ZeroMemory(&sAddr, sizeof(sAddr));
+    sAddr.sin_family = AF_INET;
+    sAddr.sin_port = 0;
+    sAddr.sin_addr.S_un.S_addr = inet_addr(NULL);
+    int sAddrLen = sizeof(sAddr);
+    resSocket = ::accept(_socket, (sockaddr *)&sAddr, &sAddrLen);
     if (resSocket == INVALID_SOCKET)
     {
         throw socketException(WSAGetLastError(), "when accepting connection");
@@ -22,6 +29,11 @@ tcpSocket *tcpSocket::accept()
     tcpSocket *res = new tcpSocket();
     res->isConnected = true;
     res->_socket = resSocket;
+    char *peer_addr_str = new char[INET_ADDRSTRLEN];
+    inet_ntop(AF_INET, &sAddr.sin_addr, peer_addr_str, INET_ADDRSTRLEN);
+    res->targetAddress = std::string(peer_addr_str);
+    delete[] peer_addr_str;
+    res->targetPort = std::to_string(ntohs(sAddr.sin_port));
     return res;
 }
 bool tcpSocket::connect(const char *address, const char *port)
@@ -58,6 +70,8 @@ bool tcpSocket::connect(const char *address, const char *port)
         return false;
     }
     isConnected = true;
+    targetAddress = std::string(address);
+    targetPort = std::string(port);
     return true;
 }
 int tcpSocket::send(const char *buffer, int n)
@@ -97,6 +111,11 @@ std::string tcpSocket::receive(int n)
     {
         recvBytes = receive(c, n);
     }
+    catch(socketTimeoutException e)
+    {
+        delete[] c;
+        throw e;
+    }
     catch(socketException e)
     {
         delete[] c;
@@ -109,6 +128,14 @@ std::string tcpSocket::receive(int n)
 std::stringstream tcpSocket::receiveStream(int n)
 {
     return std::stringstream(receive(n), std::ios_base::app|std::ios_base::in|std::ios_base::out);
+}
+const std::string& tcpSocket::getTargetAddress()
+{
+    return targetAddress;
+}
+const std::string& tcpSocket::getTargetPort()
+{
+    return targetPort;
 }
 void tcpSocket::close()
 {

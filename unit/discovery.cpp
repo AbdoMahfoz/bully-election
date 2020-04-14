@@ -25,22 +25,41 @@ void unit::discover()
             }
             if(msg.find("BULLY OFFER") == 0)
             {
-                std::string port = msg.substr(msg.rfind(' ') + 1);
-                unitData l(addr, port);
-                lock.lock();
-                if(others.find(l) == others.end())
+                std::stringstream ss(msg.substr(12));
+                std::string port;
+                int offerId;
+                ss >> offerId >> port;
+                if(knownIds.find(offerId) != knownIds.end())
                 {
-                    tcpSocket* tcp = new tcpSocket();
-                    if(tcp->connect(addr.c_str(), port.c_str()))
-                    {   
-                        l.id = stoi(tcp->receive());
-                        tcp->send(myId.c_str());
-                        unit::log("Discoverd " + std::to_string(l.id));
-                        std::thread *t = new std::thread(communicate, l, tcp);
-                        others[l] = t;
-                    }
+                    unit::log("Rejected offer of already known id");
+                    continue;
                 }
-                lock.unlock();
+                unitData l(offerId, addr, port);
+                tcpSocket* tcp = new tcpSocket();
+                if(tcp->connect(addr.c_str(), port.c_str()))
+                {   
+                    l.id = stoi(tcp->receive());
+                    tcp->send(myId.c_str());
+                    lock.lock();
+                    if(knownIds.find(l.id) != knownIds.end())
+                    {
+                        unit::log("Reconnection of an already known id " + std::to_string(l.id));
+                        auto itr = others.find(l);
+                        *(itr->first.killSwitch) = false;
+                        itr->second->join();
+                        delete itr->second;
+                        delete itr->first.killSwitch;
+                        others.erase(itr);
+                    }
+                    else
+                    {
+                        unit::log("Discoverd " + std::to_string(l.id));
+                    }
+                    knownIds.insert(l.id);
+                    std::thread *t = new std::thread(communicate, l, tcp);
+                    others[l] = t;
+                    lock.unlock();
+                }
             }
         }
         unit::log("Stopped discovering");
@@ -67,7 +86,7 @@ void unit::offer()
                 {
                     continue;
                 }
-                s.sendTo(addr.c_str(), port.c_str(), (std::string("BULLY OFFER ") + acceptPort).c_str());
+                s.sendTo(addr.c_str(), port.c_str(), (std::string("BULLY OFFER ") + myId + " " + acceptPort).c_str());
             }
         }
     }
@@ -84,10 +103,24 @@ void unit::tcpAccept()
         while(true)
         {
             tcpSocket* client = acceptSocket.accept();
-            unitData l(client->getAddress(), client->getPort());
             client->send(myId.c_str());
-            l.id = stoi(client->receive());
-            unit::log("Discoverd " + std::to_string(l.id));
+            int conId = stoi(client->receive());
+            unitData l(conId, client->getAddress(), client->getPort());
+            if (knownIds.find(l.id) != knownIds.end())
+            {
+                unit::log("Connection of already known id");
+                auto itr = others.find(l);
+                *(itr->first.killSwitch) = false;
+                itr->second->join();
+                delete itr->second;
+                delete itr->first.killSwitch;
+                others.erase(itr);
+            }
+            else
+            {
+                unit::log("Discoverd " + std::to_string(l.id));
+            }
+            knownIds.insert(l.id);
             std::thread* t = new std::thread(communicate, l, client);
             lock.lock();
             others[l] = t;
@@ -98,4 +131,10 @@ void unit::tcpAccept()
     {
         unit::log(std::string("ERROR on tcpAccept(): ") + e.what());
     }
+}
+void unit::initDiscover()
+{
+    std::thread* t = new std::thread(discover);
+    t->detach();
+    delete t;
 }
