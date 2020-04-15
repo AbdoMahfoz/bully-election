@@ -6,7 +6,7 @@ int unit::coordId;
 tcpSocket unit::acceptSocket;
 std::thread *unit::acceptThread, *unit::offerThread, *unit::electionsThread;
 std::mutex unit::othersMutex, unit::coordMutex, unit::controlMutex;
-std::map<tcpSocket*, std::thread*> unit::controlSockets;
+std::vector<std::thread*> unit::controlThreads;
 std::thread *unit::slaveThread = nullptr;
 bool unit::startElections = true, unit::controlExists = false;
 

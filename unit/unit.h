@@ -35,7 +35,7 @@ class unit
 {
 private:
     static std::map<unitData, std::thread*> others;
-    static std::map<tcpSocket*, std::thread*> controlSockets;
+    static std::vector<std::thread*> controlThreads;
     static std::thread *slaveThread;
     static std::string acceptPort, discoverPort, myId;
     static int coordId;

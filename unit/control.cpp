@@ -1,18 +1,38 @@
 #include "unit.h"
+#include <condition_variable>
+
+std::mutex sleepMutex;
+std::condition_variable sleep;
 
 void unit::master(tcpSocket* socket)
 {
+    socket->setTimeOut(100);
+    std::unique_lock<std::mutex> sleepLock(sleepMutex, std::defer_lock);
     try
     {
         while(controlExists)
         {
             socket->send("ADD 1 3");
-            int n = std::stoi(socket->receive());
-            if(n != 4)
+            int n;
+            while(true)
             {
-                unit::log("Control ERROR");
+                try
+                {
+                    n = std::stoi(socket->receive());
+                }
+                catch(socketTimeoutException)
+                {
+                    if(!controlExists)
+                    {
+                        socket->forceClose();
+                        delete socket;
+                        return;
+                    }
+                }
             }
-            std::this_thread::sleep_for(std::chrono::seconds(3));
+            sleepLock.lock();
+            sleep.wait_for(sleepLock, std::chrono::seconds(3));
+            sleepLock.unlock();
         }
     }
     catch(std::exception e)
@@ -36,7 +56,6 @@ void unit::slave(tcpSocket* socket)
                 socket->receiveStream() >> cmd >> a >> b;
                 if(cmd == "ADD")
                 {
-                    unit::log("Received addition command: " + std::to_string(a) + " + " + std::to_string(b));
                     socket->send(std::to_string(a + b).c_str());
                 }
                 else
@@ -60,7 +79,7 @@ void unit::slave(tcpSocket* socket)
 void unit::launchMaster(tcpSocket* socket)
 {
     controlExists = true;
-    controlSockets[socket] = new std::thread(master, socket);
+    controlThreads.push_back(new std::thread(master, socket));
 }
 void unit::launchSlave(tcpSocket* socket)
 {
@@ -72,12 +91,13 @@ void unit::terminator()
     std::unique_lock<std::mutex> lock(controlMutex);
     unit::log("Termnating control threads");
     controlExists = false;
-    for(auto p : controlSockets)
+    sleep.notify_all();
+    for(auto p : controlThreads)
     {
-        p.second->join();
-        delete p.second;
+        p->join();
+        delete p;
     }
-    controlSockets.clear();
+    controlThreads.clear();
     if(slaveThread != nullptr)
     {
         slaveThread->join();
@@ -87,7 +107,6 @@ void unit::terminator()
 }
 void unit::terminateControlThreads()
 {
-    std::thread* t = new std::thread(terminator);
-    t->detach();
-    delete t;
+    std::thread t(terminator);
+    t.detach();
 }
