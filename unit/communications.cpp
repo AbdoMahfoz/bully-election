@@ -7,68 +7,20 @@ void unit::communicate(unitData data, tcpSocket* socket)
     bool isCoord = false;
     try
     {
-        socket->setTimeOut(2000);
+        socket->setTimeOut(1000);
         std::unique_lock<std::mutex> coordLock(coordMutex, std::defer_lock);
-        std::unique_lock<std::mutex> controlLock(controlMutex, std::defer_lock);
         while(*data.killSwitch)
         {
             coordLock.lock();
             isCoord = (data.id == coordId);
             coordLock.unlock();
-            controlLock.lock();
-            if(isCoord && !controlExists)
-            {
-                tcpSocket s;
-                s.bind("0");
-                socket->send(("CONTROL " + s.getPort()).c_str());
-                tcpSocket* slave = s.accept();
-                launchSlave(slave);
-                unit::log("Control to coordinator connected");
-                controlLock.unlock();
-            }
-            else
-            {
-                controlLock.unlock();
-            }
             try
             {
                 socket->send("ALIVE");
                 std::string msg = socket->receive();
                 if(msg != "ALIVE")
                 {
-                    if(msg.find("CONTROL") == 0)
-                    {
-                        coordLock.lock();
-                        if(coordId == std::stoi(myId))
-                        {
-                            std::string targetPort = msg.substr(msg.rfind(' ') + 1);
-                            tcpSocket* master = new tcpSocket();
-                            if(master->connect(socket->getTargetAddress().c_str(), targetPort.c_str()))
-                            {
-                                controlLock.lock();
-                                launchMaster(master);
-                                unit::log("Controlling " + std::to_string(data.id));
-                                controlLock.unlock();
-                            }
-                            else
-                            {
-                                unit::log("ERROR: Failed to control " + std::to_string(data.id));
-                            }
-                            coordLock.unlock();
-                        }
-                        else
-                        {
-                            coordLock.unlock();
-                            unit::log("WARNING: " + std::to_string(data.id) + 
-                                      " is treating me as the coordinator. Reinitating elections");
-                            initElections();
-                        }
-                        continue;
-                    }
-                    else
-                    {
-                        break;
-                    }
+                    break;
                 }
             }
             catch(socketException)
@@ -78,7 +30,6 @@ void unit::communicate(unitData data, tcpSocket* socket)
             std::this_thread::sleep_for(std::chrono::seconds(1));
         }
         if(coordLock.owns_lock()) coordLock.unlock();
-        if(controlLock.owns_lock()) controlLock.unlock();
         socket->forceClose();
         delete socket;
         if(*(data.killSwitch))
@@ -93,7 +44,8 @@ void unit::communicate(unitData data, tcpSocket* socket)
                 unit::log("Lost connection to " + std::to_string(data.id));
             }
             initDiscover();
-            killConnection(data.id);
+            std::thread t(killConnection, data.id);
+            t.detach();
         }
     }
     catch(std::exception e)
@@ -148,7 +100,6 @@ void unit::elections()
                         {
                             unit::log("New coordinator: " + std::to_string(coordId));
                         }
-                        terminateControlThreads();
                     }
                 }
                 else

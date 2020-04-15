@@ -35,14 +35,12 @@ class unit
 {
 private:
     static std::map<unitData, std::thread*> others;
-    static std::vector<std::thread*> controlThreads;
-    static std::thread *slaveThread;
     static std::string acceptPort, discoverPort, myId;
     static int coordId;
     static tcpSocket acceptSocket;
     static std::thread *acceptThread, *offerThread, *electionsThread;
-    static std::mutex othersMutex, coordMutex, controlMutex;
-    static bool startElections, controlExists;
+    static std::mutex othersMutex, coordMutex;
+    static bool startElections;
     //discovery
     static void initDiscover();
     static void discover();
@@ -54,13 +52,6 @@ private:
     static void communicate(unitData data, tcpSocket* socket);
     static void initElections();
     static void elections();
-    //control
-    static void launchMaster(tcpSocket* socket);
-    static void launchSlave(tcpSocket* socket);
-    static void master(tcpSocket* socket);
-    static void slave(tcpSocket* socket);
-    static void terminator();
-    static void terminateControlThreads();
     //logger
     static void output();
     static void intializeLogger();

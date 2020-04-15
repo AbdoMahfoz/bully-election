@@ -5,10 +5,8 @@ std::string unit::acceptPort, unit::discoverPort, unit::myId;
 int unit::coordId;
 tcpSocket unit::acceptSocket;
 std::thread *unit::acceptThread, *unit::offerThread, *unit::electionsThread;
-std::mutex unit::othersMutex, unit::coordMutex, unit::controlMutex;
-std::vector<std::thread*> unit::controlThreads;
-std::thread *unit::slaveThread = nullptr;
-bool unit::startElections = true, unit::controlExists = false;
+std::mutex unit::othersMutex, unit::coordMutex;
+bool unit::startElections = true;
 
 bool operator<(const unitData& lhs, const unitData& rhs)
 {
