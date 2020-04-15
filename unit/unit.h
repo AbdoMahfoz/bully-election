@@ -11,6 +11,7 @@
 #include <mutex>
 #include <vector>
 #include <set>
+#include <condition_variable>
 #include "../socket/socket.h"
 
 struct unitData
@@ -52,6 +53,8 @@ private:
     static void communicate(unitData data, tcpSocket* socket);
     static void initElections();
     static void elections();
+    //control
+    static void control(bool* running, bool isCoordinator, tcpSocket* socket);
     //logger
     static void output();
     static void intializeLogger();

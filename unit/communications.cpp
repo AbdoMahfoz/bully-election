@@ -5,8 +5,48 @@
 void unit::communicate(unitData data, tcpSocket* socket)
 {
     bool isCoord = false;
+    std::thread* controlThread = nullptr;
+    tcpSocket* controlSocket = nullptr;
+    bool* controlRunning = nullptr;
+    int lastCoord = coordId;
     try
     {
+        if(lastCoord != coordId)
+        {
+            lastCoord = coordId;
+            if(controlThread != nullptr)
+            {
+                unit::log("Terminating control thread");
+                delete controlThread, controlRunning;
+                controlSocket->forceClose();
+                delete controlSocket;
+                controlThread = nullptr; 
+                controlRunning = nullptr;
+                controlSocket = nullptr;
+            }
+        }
+        if(controlThread == nullptr)
+        {
+            if(data.id == coordId)
+            {
+                controlSocket = new tcpSocket();
+                controlRunning = new bool(true);
+                std::string portNum = socket->receive();
+                controlSocket->connect(socket->getTargetAddress().c_str(), portNum.c_str());
+                controlThread = new std::thread(control, controlRunning, false, controlSocket);
+                unit::log("Established connection to coordinator control");
+            }
+            else if(myId == std::to_string(coordId))
+            {
+                tcpSocket ss;
+                controlRunning = new bool(true);
+                ss.bind("0");
+                socket->send(ss.getPort().c_str());
+                controlSocket = ss.accept();
+                controlThread = new std::thread(control, controlRunning, true, controlSocket);
+                unit::log("Connection with unit " + std::to_string(data.id) + " control established");
+            }
+        }
         socket->setTimeOut(1000);
         std::unique_lock<std::mutex> coordLock(coordMutex, std::defer_lock);
         while(*data.killSwitch)
@@ -31,7 +71,9 @@ void unit::communicate(unitData data, tcpSocket* socket)
         }
         if(coordLock.owns_lock()) coordLock.unlock();
         socket->forceClose();
-        delete socket;
+        delete socket, controlThread, controlRunning;
+        controlSocket->forceClose();
+        delete controlSocket;
         if(*(data.killSwitch))
         {
             if(isCoord)
