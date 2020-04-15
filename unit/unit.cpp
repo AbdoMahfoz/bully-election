@@ -8,7 +8,6 @@ std::thread *unit::acceptThread, *unit::offerThread, *unit::electionsThread;
 std::mutex unit::othersMutex, unit::coordMutex, unit::controlMutex;
 std::map<tcpSocket*, std::thread*> unit::controlSockets;
 std::thread *unit::slaveThread = nullptr;
-std::set<int> unit::knownIds;
 bool unit::startElections = true, unit::controlExists = false;
 
 bool operator<(const unitData& lhs, const unitData& rhs)
@@ -19,7 +18,6 @@ bool operator<(const unitData& lhs, const unitData& rhs)
 void unit::main(int id)
 {
     myId = std::to_string(id);
-    knownIds.insert(id);
     unit::intializeLogger();
     acceptSocket.bind("0");
     acceptPort = acceptSocket.getPort();

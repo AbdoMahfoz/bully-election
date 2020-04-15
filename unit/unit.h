@@ -21,7 +21,7 @@ public:
     std::string port;
     bool* killSwitch;
     unitData(){}
-    unitData(int id, std::string& address, std::string& port)
+    unitData(int id, const std::string& address, const std::string& port)
     {
         this->id = id;
         this->address = address;
@@ -36,7 +36,6 @@ class unit
 private:
     static std::map<unitData, std::thread*> others;
     static std::map<tcpSocket*, std::thread*> controlSockets;
-    static std::set<int> knownIds;
     static std::thread *slaveThread;
     static std::string acceptPort, discoverPort, myId;
     static int coordId;
@@ -49,6 +48,8 @@ private:
     static void discover();
     static void offer();
     static void tcpAccept();
+    static void killConnection(int id);
+    static void addConnection(const unitData& l, tcpSocket* socket);
     //communications
     static void communicate(unitData data, tcpSocket* socket);
     static void initElections();

@@ -29,36 +29,20 @@ void unit::discover()
                 std::string port;
                 int offerId;
                 ss >> offerId >> port;
-                if(knownIds.find(offerId) != knownIds.end())
+                unitData l(offerId, addr, port);
+                lock.lock();
+                if(others.find(l) != others.end())
                 {
                     unit::log("Rejected offer of already known id");
                     continue;
                 }
-                unitData l(offerId, addr, port);
+                lock.unlock();
+                unit::log("Discoverd " + std::to_string(l.id));
                 tcpSocket* tcp = new tcpSocket();
                 if(tcp->connect(addr.c_str(), port.c_str()))
                 {   
-                    l.id = stoi(tcp->receive());
                     tcp->send(myId.c_str());
-                    lock.lock();
-                    if(knownIds.find(l.id) != knownIds.end())
-                    {
-                        unit::log("Reconnection of an already known id " + std::to_string(l.id));
-                        auto itr = others.find(l);
-                        *(itr->first.killSwitch) = false;
-                        itr->second->join();
-                        delete itr->second;
-                        delete itr->first.killSwitch;
-                        others.erase(itr);
-                    }
-                    else
-                    {
-                        unit::log("Discoverd " + std::to_string(l.id));
-                    }
-                    knownIds.insert(l.id);
-                    std::thread *t = new std::thread(communicate, l, tcp);
-                    others[l] = t;
-                    lock.unlock();
+                    addConnection(l, tcp);
                 }
             }
         }
@@ -86,7 +70,9 @@ void unit::offer()
                 {
                     continue;
                 }
-                s.sendTo(addr.c_str(), port.c_str(), (std::string("BULLY OFFER ") + myId + " " + acceptPort).c_str());
+                std::stringstream ss;
+                ss << "BULLY OFFER " << myId << ' ' << acceptPort;
+                s.sendTo(addr.c_str(), port.c_str(), ss.str().c_str());
             }
         }
     }
@@ -103,34 +89,44 @@ void unit::tcpAccept()
         while(true)
         {
             tcpSocket* client = acceptSocket.accept();
-            client->send(myId.c_str());
-            int conId = stoi(client->receive());
-            unitData l(conId, client->getAddress(), client->getPort());
-            if (knownIds.find(l.id) != knownIds.end())
+            int conId = std::stoi(client->receive());
+            unitData l(conId, client->getTargetAddress(), client->getTargetPort());
+            lock.lock();
+            if (others.find(l) != others.end())
             {
                 unit::log("Connection of already known id");
-                auto itr = others.find(l);
-                *(itr->first.killSwitch) = false;
-                itr->second->join();
-                delete itr->second;
-                delete itr->first.killSwitch;
-                others.erase(itr);
+                killConnection(l.id);
             }
             else
             {
                 unit::log("Discoverd " + std::to_string(l.id));
             }
-            knownIds.insert(l.id);
-            std::thread* t = new std::thread(communicate, l, client);
-            lock.lock();
-            others[l] = t;
             lock.unlock();
+            addConnection(l, client);
         }
     }
     catch(std::exception e)
     {
         unit::log(std::string("ERROR on tcpAccept(): ") + e.what());
     }
+}
+
+void unit::addConnection(const unitData& l, tcpSocket* socket)
+{
+    std::unique_lock<std::mutex> lock(othersMutex);
+    std::thread* t = new std::thread(communicate, l, socket);
+    others[l] = t;
+}
+void unit::killConnection(int id)
+{
+    unitData l;
+    l.id = id;
+    auto itr = others.find(l);
+    *(itr->first.killSwitch) = false;
+    itr->second->join();
+    delete itr->second;
+    delete itr->first.killSwitch;
+    others.erase(itr);
 }
 void unit::initDiscover()
 {
